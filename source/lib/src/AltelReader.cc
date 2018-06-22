@@ -72,7 +72,7 @@ AltelReader::AltelReader(const std::string& json_str)
   else{
     std::fprintf(stderr, "ERROR<%s>: Unknown reader protocol: %s\n",   __func__,  js_proto.GetString());
     throw;
-  }  
+  }
 }
 
 AltelReader::AltelReader(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator> &js){
@@ -108,7 +108,7 @@ bool AltelReader::Open(){
 #ifdef _WIN32
     m_fd = _open(m_file_path.c_str(), _O_RDONLY | _O_BINARY);
 #else
-    m_fd = open(m_file_path.c_str(), O_RDONLY);
+    m_fd = open(m_file_path.c_str(), O_RDONLY | O_NONBLOCK);
 #endif
     if(!m_fd)
       return false;
@@ -202,11 +202,18 @@ DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //
 #else
       read_len_real = read(m_fd, &buf[size_filled], size_buf-size_filled);
 #endif
-      if(read_len_real < 0){
+
+      if(read_len_real>0){
+	std::fprintf(stdout, ">>>read  %d Bytes \n", read_len_real); 
+      }
+      if (read_len_real < 0) {
+	if (errno == EAGAIN)
+	  continue; //no problem, just no data
+	fprintf(stderr, "ERROR on reading from axidmard, errno=%d\n", errno);
         std::fprintf(stderr, "ERROR<%s@%s>: read(...) returns error code %i\n", __func__, m_tcp_ip.c_str(), read_len_real);
         throw;
       }
-
+      
       if(read_len_real== 0){
         if(!can_time_out){
           can_time_out = true;

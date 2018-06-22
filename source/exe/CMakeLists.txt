@@ -29,16 +29,26 @@ target_include_directories(regctrl_main
 target_link_libraries(regctrl_main PRIVATE altel-rbcp mycommon)
 
 
-add_executable(tcprx_dump tcprx_dump.cc)
+# add_executable(tcprx_dump tcprx_dump.cc)
 
-target_include_directories(tcprx_dump
+# target_include_directories(tcprx_dump
+#   PRIVATE
+#   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+#   )
+# target_link_libraries(tcprx_dump PRIVATE altel-rbcp mycommon stdc++fs)
+
+
+add_executable(dmarx_dump dmarx_dump.cc)
+
+target_include_directories(dmarx_dump
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   )
-target_link_libraries(tcprx_dump PRIVATE altel-rbcp mycommon stdc++fs)
+target_link_libraries(dmarx_dump PRIVATE altel-rbcp mycommon stdc++fs)
 
 
-install(TARGETS regctrl_main tcprx_dump
+
+install(TARGETS regctrl_main dmarx_dump
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION lib      COMPONENT runtime
