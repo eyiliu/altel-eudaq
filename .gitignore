@@ -1,0 +1,14 @@
+build/*
+install/*
+temp/*
+backup/*
+BUILD/*
+INSTALL/*
+TEMP/*
+BACKUP/*
+
+.*
+\#*#
+*~
+*.pyc
+Thumbs.db
