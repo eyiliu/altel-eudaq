@@ -46,6 +46,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
   std::string reg_str;
   if(reg_file_path == "builtin"){
     reg_str = altel_reg_cmd_list_content;
+    std::cout<<"=====================builting "<< altel_reg_cmd_list_content<<std::endl;
   }
   else{
     reg_str = LoadFileToString(reg_file_path);

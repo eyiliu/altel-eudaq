@@ -75,6 +75,7 @@ void altel::AltelProducer::DoStartRun(){
 
 void altel::AltelProducer::DoStopRun(){
   m_tel->Stop();
+  m_exit_of_run = true;
 }
 
 void altel::AltelProducer::DoReset(){
@@ -87,6 +88,7 @@ void altel::AltelProducer::DoTerminate(){
 
 void altel::AltelProducer::RunLoop(){
   auto tp_start_run = std::chrono::steady_clock::now();
+  m_exit_of_run = false;
   while(!m_exit_of_run){
     auto ev_tel = m_tel->ReadEvent();
     if(ev_tel.empty()){

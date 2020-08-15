@@ -6,7 +6,7 @@ using namespace std::chrono_literals;
 using namespace altel;
 
 void Layer::fw_start(){
-  if(!m_fw) return;  
+  if(!m_fw) return;
   m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
   m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
   m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
@@ -30,15 +30,15 @@ void Layer::fw_conf(){
     throw;
   }
   const auto& js_hotmask =  m_js_conf["hotmask"];
-  std::printf("\nMasking Layer %s ", m_name.c_str());
+  // std::printf("\nMasking Layer %s ", m_name.c_str());
   for(const auto &hot: js_hotmask.GetArray()){
     uint64_t  x = hot[0].GetUint64();
     uint64_t  y = hot[1].GetUint64();
-    std::printf(" [%u, %u] ", x, y);
+    // std::printf(" [%u, %u] ", x, y);
     m_fw->SetPixelRegister(x, y, "MASK_EN", true);
   }
-  std::printf("\n ");  
-  
+  // std::printf("\n ");
+
   if(!m_js_conf.HasMember("firmware")){
     fprintf(stderr, "JSON configure file error: no firmware section \n");
     throw;

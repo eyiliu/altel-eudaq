@@ -161,12 +161,18 @@ void Telescope::Init(){
   for(auto & l: m_vec_layer){
     l->fw_init();
   }
-}
-
-void Telescope::Start(){
   for(auto & l: m_vec_layer){
     l->fw_conf();
   }
+}
+
+void Telescope::Start(){
+  m_st_n_ev = 0;
+  m_mon_ev_read = 0;
+  m_mon_ev_write = 0;
+  // for(auto & l: m_vec_layer){
+  //   l->fw_conf();
+  // }
 
   for(auto & l: m_vec_layer){
     l->rd_start();
@@ -186,9 +192,9 @@ void Telescope::Start(){
 }
 
 void Telescope::Start_no_tel_reading(){ // TO be removed,
-  for(auto & l: m_vec_layer){
-    l->fw_conf();
-  }
+  m_st_n_ev = 0;
+  m_mon_ev_read = 0;
+  m_mon_ev_write = 0;
 
   for(auto & l: m_vec_layer){
     l->rd_start();
