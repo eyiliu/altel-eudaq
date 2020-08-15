@@ -59,8 +59,9 @@ namespace{
 
 
 void altel::AltelProducer::DoInitialise(){
+  std::cout<< "it is AltelProducer "<<std::endl;
   auto ini = GetInitConfiguration();
-  std::string tel_json_conf_path = ini->Get("ALTEL_EUDAQ_CONF_JSON_FILE", "altel_conf.json");
+  std::string tel_json_conf_path = ini->Get("ALTEL_EUDAQ_CONF_JSON_FILE", "/tmp/telescope.json");
   m_tel.reset(new altel::Telescope(LoadFileToString(tel_json_conf_path)));
   m_tel->Init();
 }
@@ -94,7 +95,7 @@ void altel::AltelProducer::RunLoop(){
       continue;
     }
 
-    auto ev_eudaq = eudaq::Event::MakeUnique("AltelHit");
+    auto ev_eudaq = eudaq::Event::MakeUnique("AltelRaw");
     uint64_t trigger_n = ev_tel.front()->GetTrigger();
     ev_eudaq->SetTriggerN(trigger_n);
     //ev_eudaq->SetTag("status", "something status");
@@ -122,7 +123,7 @@ void altel::AltelProducer::RunLoop(){
         p_block ++;
         for(auto &ph : ch.pixelHits){
           // Y<< 16 + X
-          *p_block = uint32_t(ph.x()) + uint32_t(ph.y())<<16;
+          *p_block =  uint32_t(ph.x()) + (uint32_t(ph.y())<<16);
           p_block ++;
         }
       }

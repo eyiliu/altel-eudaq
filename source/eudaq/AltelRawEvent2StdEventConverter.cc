@@ -45,7 +45,6 @@ bool AltelRawEvent2StdEventConverter::Converting(eudaq::EventSPC d1, eudaq::StdE
         uint16_t pixelX = static_cast<uint16_t>(pixelXY);
         uint16_t pixelY = static_cast<uint16_t>(pixelXY>>16);
         layer->PushPixel(pixelX , pixelY,  1);
-
       }
     }
   }

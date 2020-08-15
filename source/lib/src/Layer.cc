@@ -190,15 +190,15 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
       uint32_t tg_guess_0 = (tg_expected & 0xffff8000) + tg_l15;
       uint32_t tg_guess_1 = (tg_expected & 0xffff8000) + 0x8000 + tg_l15;
       if(tg_guess_0 > tg_expected && tg_guess_0 - tg_expected < 200){
-        std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
+        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
         tg_expected =tg_guess_0;
       }
       else if (tg_guess_1 > tg_expected && tg_guess_1 - tg_expected < 200){
-        std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
+        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
         tg_expected =tg_guess_1;
       }
       else{
-        std::cout<< "broken trigger ID, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<<df->GetExtension() <<") \n";
+        // std::cout<< "broken trigger ID, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<<df->GetExtension() <<") \n";
         tg_expected ++;
         m_st_n_ev_bad_now ++;
         // permanent data lose
