@@ -4,13 +4,14 @@ aux_source_directory(src LIB_SRC)
 add_library(altel-rbcp SHARED ${LIB_SRC} )
 target_link_libraries(altel-rbcp PRIVATE mycommon rbcp)
 
-set(ALTEL_REG_JSON ${CMAKE_CURRENT_LIST_DIR}/misc/altel_reg_cmd_list.json)
-set(ALTEL_REG_JSON_HH  ${CMAKE_BINARY_DIR}/altel_reg_cmd_list.hh)
-if( (NOT EXISTS ${ALTEL_REG_JSON_HH}) OR (${ALTEL_REG_JSON} IS_NEWER_THAN ${ALTEL_REG_JSON_HH}) )
-  set(HH_DELIM "~~~cpp~raw~~~")
-  file(READ ${ALTEL_REG_JSON} ALTEL_REG_JSON_CONTENT)
-  set(ALTEL_REG_JSON_CONTENT "R\"${HH_DELIM}(${ALTEL_REG_JSON_CONTENT})${HH_DELIM}\"")
-  file(WRITE ${ALTEL_REG_JSON_HH} "${ALTEL_REG_JSON_CONTENT}")
+# TODO: MAKE FUN
+set(ORI_FILE ${CMAKE_CURRENT_LIST_DIR}/misc/altel_reg_cmd_list.json)
+set(GEN_FILE  ${CMAKE_BINARY_DIR}/altel_reg_cmd_list.hh)
+if( (NOT EXISTS ${GEN_FILE}) OR (${ORI_FILE} IS_NEWER_THAN ${GEN_FILE}) )
+  set(GEN_DELIM "~~~cpp~raw~~~")
+  file(READ ${ORI_FILE} ORI_FILE_CONTENT)
+  set(GEN_FILE_CONTENT "R\"${GEN_DELIM}(${ORI_FILE_CONTENT})${GEN_DELIM}\"")
+  file(WRITE ${GEN_FILE} "${GEN_FILE_CONTENT}")
 endif()
 
 
