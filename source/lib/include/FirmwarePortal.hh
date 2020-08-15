@@ -22,8 +22,7 @@ class FirmwarePortal{
 public:
   FirmwarePortal(const std::string &json_str, const std::string &ipaddr);
   FirmwarePortal(const std::string &json_str_options);
-  FirmwarePortal(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator> &js);
-  
+
   void SetFirmwareRegister(const std::string& name, uint64_t value);
   void SendFirmwareCommand(const std::string& name);
   uint64_t GetFirmwareRegister(const std::string& name);

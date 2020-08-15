@@ -2,13 +2,23 @@
 #include "FirmwarePortal.hh"
 #include "rbcp.h"
 
+
+static const std::string altel_reg_cmd_list_content =
+#include "altel_reg_cmd_list.hh"
+  ;
+
 FirmwarePortal::FirmwarePortal(const std::string &json_str, const std::string &ipaddr){
   m_alpide_ip_addr = ipaddr;
-  m_json.Parse(json_str.c_str());
+  if(json_str == "builtin"){
+    m_json.Parse(altel_reg_cmd_list_content.c_str());
+  }
+  else{
+    m_json.Parse(json_str.c_str());
+  }
   if(m_json.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
     throw;
-  }    
+  }
 }
 
 FirmwarePortal::FirmwarePortal(const std::string &json_str){
@@ -19,7 +29,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
     throw;
   }
   m_js_conf.CopyFrom<rapidjson::CrtAllocator>(js_doc, m_jsa);
-  
+
   auto& js_proto = m_js_conf["protocol"];
   auto& js_opt = m_js_conf["options"];
   std::string reg_file_path;
@@ -33,44 +43,18 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
       throw;
   }
 
-  std::string reg_str = LoadFileToString(reg_file_path);
-  
+  std::string reg_str;
+  if(reg_file_path == "builtin"){
+    reg_str = altel_reg_cmd_list_content;
+  }
+  else{
+    reg_str = LoadFileToString(reg_file_path);
+  }
   if(reg_str.empty()){
     fprintf(stderr, "empty reg_str");
     throw;
   }
-  
-  m_json.Parse(reg_str.c_str());
-  if(m_json.HasParseError()){
-    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
-    throw;
-  }
-}
 
-
-FirmwarePortal::FirmwarePortal(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator> &js){
-  m_js_conf.CopyFrom<rapidjson::CrtAllocator>(js, m_jsa);
-  
-  auto& js_proto = m_js_conf["protocol"];
-  auto& js_opt = m_js_conf["options"];
-  std::string reg_file_path;
-  if(js_proto == "udp"){
-    m_alpide_ip_addr = js_opt["ip"].GetString();
-    reg_file_path = js_opt["path"].GetString();
-  }
-
-  if(reg_file_path.empty()){
-      fprintf(stderr, "empty reg_file_path");
-      throw;
-  }
-
-  std::string reg_str = LoadFileToString(reg_file_path);
-  
-  if(reg_str.empty()){
-    fprintf(stderr, "empty reg_str");
-    throw;
-  }
-  
   m_json.Parse(reg_str.c_str());
   if(m_json.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
