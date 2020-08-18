@@ -5,7 +5,10 @@ endif()
 
 aux_source_directory(./ MODULE_SRC)
 
-find_package(eudaq CONFIG REQUIRED NO_DEFAULT_PATH)
+find_package(eudaq CONFIG
+  COMPONENTS eudaq::core eudaq::lcio
+  REQUIRED NO_DEFAULT_PATH)
+
 include_directories(${EUDAQ_INCLUDE_DIRS})
 
 list(FIND EUDAQ_LIBRARIES "eudaq_lcio" LCIO_FIND_POS)
@@ -16,8 +19,8 @@ endif()
 add_library(eudaq_module_altel SHARED ${MODULE_SRC})
 set_property(TARGET eudaq_module_altel PROPERTY CXX_STANDARD 14)
 
-target_link_libraries(eudaq_module_altel ${EUDAQ_LIBRARIES} altel-rbcp mycommon)
-set_property(TARGET eudaq_module_altel APPEND PROPERTY INSTALL_RPATH ${EUDAQ_LIBRARIES_DIRS})
+target_link_libraries(eudaq_module_altel eudaq::core eudaq::lcio altel-rbcp mycommon)
+# set_property(TARGET eudaq_module_altel APPEND PROPERTY INSTALL_RPATH ${EUDAQ_LIBRARIES_DIRS})
 
 install(TARGETS
   eudaq_module_altel
