@@ -24,6 +24,7 @@ target_link_libraries(eudaq_module_altel eudaq::core eudaq::lcio altel-rbcp myco
 
 install(TARGETS
   eudaq_module_altel
+  EXPORT ${PROJECT_NAME}Targets
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)

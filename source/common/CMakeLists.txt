@@ -24,5 +24,19 @@ target_include_directories(mycommon
   $<INSTALL_INTERFACE:include>
   )
 
-# set(LIB_PUBLIC_HEADERS mycommon.hh)
+set(LIB_PUBLIC_HEADERS mysystem.hh)
+# only work if cmake >3.15
 # set_target_properties(mycommon PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")
+
+install(TARGETS mycommon
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME       DESTINATION bin      COMPONENT runtime
+  LIBRARY       DESTINATION lib      COMPONENT runtime
+  ARCHIVE       DESTINATION lib      COMPONENT devel
+  PUBLIC_HEADER DESTINATION include  COMPONENT devel
+  RESOURCE      DESTINATION resource COMPONENT runtime
+  )
+
+install(FILES ${LIB_PUBLIC_HEADERS}
+  DESTINATION include
+  )

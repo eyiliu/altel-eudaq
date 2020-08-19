@@ -46,7 +46,7 @@ using socket_t = decltype(socket(0, 0, 0));
 #  include <dlfcn.h>
 #endif
 
-// 
+//
 // From RAPIDJSON
 #define TYPE_LITTLEENDIAN  0   //!< Little endian machine
 #define TYPE_BIGENDIAN     1   //!< Big endian machine
@@ -82,7 +82,7 @@ using socket_t = decltype(socket(0, 0, 0));
 #  elif defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
 #    define LOCAL_HOST_ENDIAN TYPE_LITTLEENDIAN
 #  else
-#    error Unknown machine endianness detected. User needs to define LOCAL_HOST_ENDIAN.   
+#    error Unknown machine endianness detected. User needs to define LOCAL_HOST_ENDIAN.
 #  endif
 
 
@@ -94,7 +94,7 @@ using socket_t = decltype(socket(0, 0, 0));
 #  define LE16TOH le16toh
 #  define LE32TOH le32toh
 #  define LE64TOH le64toh
-#elif defined(__APPLE__) && (LOCAL_HOST_ENDIAN == TYPE_LITTLEENDIAN)  
+#elif defined(__APPLE__) && (LOCAL_HOST_ENDIAN == TYPE_LITTLEENDIAN)
 #  include <machine/endian.h>
 #  define BE16TOH NTOHS
 #  define BE32TOH NTOHL
@@ -120,8 +120,8 @@ inline std::string binaryPath(){
     void* address_return = _ReturnAddress();
     HMODULE handle = NULL;
     ::GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
-			|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-			static_cast<LPCSTR>(address_return), &handle);
+                        |GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                        static_cast<LPCSTR>(address_return), &handle);
     char modpath[MAX_PATH] = {'\0'};
     ::GetModuleFileNameA(handle, modpath, MAX_PATH);
     return modpath;
