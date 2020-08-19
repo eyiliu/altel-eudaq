@@ -5,6 +5,24 @@
 using namespace std::chrono_literals;
 using namespace altel;
 
+
+Layer::~Layer(){
+
+  m_is_restart_running=false;
+  if(m_fut_async_restart.valid())
+    m_fut_async_restart.get();
+
+  m_is_async_reading = false;
+  if(m_fut_async_rd.valid())
+    m_fut_async_rd.get();
+
+  m_is_async_watching = false;
+  if(m_fut_async_watch.valid())
+    m_fut_async_watch.get();
+
+}
+
+
 void Layer::fw_start(){
   if(!m_fw) return;
   m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
@@ -12,7 +30,32 @@ void Layer::fw_start(){
   m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
   m_fw->SetFirmwareRegister("FIRMWARE_MODE", 1); //run ext trigger
   std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
+
+  if(!m_is_restart_running){
+    m_fut_async_restart = std::async(std::launch::async, &Layer::fw_async_restart, this);
+  }
+
 }
+
+
+uint64_t Layer::fw_async_restart(){
+  m_is_restart_running = true;
+  std::chrono::system_clock::time_point tp_quit = std::chrono::system_clock::now() + 20s;
+  while(m_is_restart_running){
+    std::this_thread::sleep_for(1s);
+    if(std::chrono::system_clock::now() > tp_quit){
+      break;
+    }
+    if(m_is_async_reading && m_read_nodata_loopn>10){
+      //fw_stop();
+      fw_start();
+      tp_quit = std::chrono::system_clock::now() + 20s;
+    }
+  }
+  m_is_restart_running = false;
+  return 0;
+}
+
 
 void Layer::fw_stop(){
   if(!m_fw) return;
@@ -120,11 +163,11 @@ void Layer::fw_init(){
 
   //user init
   //
-  //  
+  //
 
   //
   //end of user init
-  
+
   std::fprintf(stdout, " fw init  %s\n", m_fw->DeviceUrl().c_str());
 }
 
@@ -163,12 +206,14 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
   m_rd->Open();
   std::fprintf(stdout, " rd start  %s\n", m_rd->DeviceUrl().c_str());
   m_is_async_reading = true;
+  m_read_nodata_loopn = 0;
   while (m_is_async_reading){
     auto df = m_rd? m_rd->Read(1000ms):nullptr; // TODO: read a vector
     if(!df){
+      m_read_nodata_loopn ++;
       continue;
     }
-
+    m_read_nodata_loopn = 0;
     m_st_n_ev_input_now ++;
     uint64_t next_p_ring_write = m_count_ring_write % m_size_ring;
     if(next_p_ring_write == m_hot_p_read){
@@ -207,7 +252,7 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
     }
     df->SetTrigger(tg_expected-1); //TODO: fix tlu firmware, mismatch between modes
     m_st_n_tg_ev_now = tg_expected-1;
-    
+
     m_vec_ring_ev[next_p_ring_write] = df;
     m_count_ring_write ++;
     tg_expected ++;

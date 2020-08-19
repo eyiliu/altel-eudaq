@@ -19,7 +19,7 @@ namespace altel{
     std::future<uint64_t> m_fut_async_watch;
     std::vector<DataFrameSP> m_vec_ring_ev;
     DataFrameSP m_ring_end;
-  
+
     uint64_t m_size_ring{200000};
     std::atomic_uint64_t m_count_ring_write;
     std::atomic_uint64_t m_hot_p_read;
@@ -27,8 +27,12 @@ namespace altel{
     bool m_is_async_reading{false};
     bool m_is_async_watching{false};
 
+    std::atomic_uint64_t m_read_nodata_loopn{0};
+    std::future<uint64_t> m_fut_async_restart;
+    bool m_is_restart_running{0};
+
     uint64_t m_extension{0};
-  
+
     //status variable:
     std::atomic_uint64_t m_st_n_tg_ev_now{0};
     std::atomic_uint64_t m_st_n_ev_input_now{0};
@@ -48,7 +52,10 @@ namespace altel{
     std::string m_st_string;
     std::mutex m_mtx_st;
   public:
+    ~Layer();
+
     void fw_start();
+    uint64_t fw_async_restart();
     void fw_stop();
     void fw_init();
     void fw_conf();
@@ -62,7 +69,7 @@ namespace altel{
     void PopFront();
     uint64_t Size();
     void ClearBuffer();
-  
+
     std::string GetStatusString();
     uint64_t AsyncWatchDog();
 
