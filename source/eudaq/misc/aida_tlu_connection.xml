@@ -1,0 +1,5 @@
+<connections>
+    <connection id="aida_tlu.controlhub" uri="chtcp-2.0://192.168.21.1:10203?target=192.168.200.30:50001"
+        address_table="file:///tmp/aida_tlu_address-fw_version_25.xml" />
+</connections>
+
