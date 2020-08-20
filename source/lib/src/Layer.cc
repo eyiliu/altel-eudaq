@@ -8,10 +8,6 @@ using namespace altel;
 
 Layer::~Layer(){
 
-  m_is_restart_running=false;
-  if(m_fut_async_restart.valid())
-    m_fut_async_restart.get();
-
   m_is_async_reading = false;
   if(m_fut_async_rd.valid())
     m_fut_async_rd.get();
@@ -31,30 +27,8 @@ void Layer::fw_start(){
   m_fw->SetFirmwareRegister("FIRMWARE_MODE", 1); //run ext trigger
   std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
 
-  if(!m_is_restart_running){
-    m_fut_async_restart = std::async(std::launch::async, &Layer::fw_async_restart, this);
-  }
-
 }
 
-
-uint64_t Layer::fw_async_restart(){
-  m_is_restart_running = true;
-  std::chrono::system_clock::time_point tp_quit = std::chrono::system_clock::now() + 20s;
-  while(m_is_restart_running){
-    std::this_thread::sleep_for(1s);
-    if(std::chrono::system_clock::now() > tp_quit){
-      break;
-    }
-    if(m_is_async_reading && m_read_nodata_loopn>10){
-      //fw_stop();
-      fw_start();
-      tp_quit = std::chrono::system_clock::now() + 20s;
-    }
-  }
-  m_is_restart_running = false;
-  return 0;
-}
 
 
 void Layer::fw_stop(){
@@ -105,7 +79,7 @@ void Layer::fw_conf(){
 void Layer::fw_init(){
   if(!m_fw) return;
 
-  //m_fw->SendFirmwareCommand("RESET");
+  //  m_fw->SendFirmwareCommand("RESET");
   m_fw->SetFirmwareRegister("TRIG_DELAY", 1); //25ns per dig (FrameDuration?)
   m_fw->SetFirmwareRegister("GAP_INT_TRIG", 20);
 
@@ -205,15 +179,35 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
   m_rd->Open();
   std::fprintf(stdout, " rd start  %s\n", m_rd->DeviceUrl().c_str());
   m_is_async_reading = true;
-  m_read_nodata_loopn = 0;
+
+  m_st_n_tg_ev_now =0;
+  m_st_n_ev_input_now =0;
+  m_st_n_ev_output_now =0;
+  m_st_n_ev_bad_now =0;
+  m_st_n_ev_overflow_now =0;
+  m_st_n_tg_ev_begin = 0;
+  
+  std::chrono::system_clock::time_point tp_reset_fw = std::chrono::system_clock::now() + 10s;
   while (m_is_async_reading){
     auto df = m_rd? m_rd->Read(1000ms):nullptr; // TODO: read a vector
     if(!df){
-      m_read_nodata_loopn ++;
+      if(!m_st_n_ev_input_now && std::chrono::system_clock::now() > tp_reset_fw){
+	//reset fw, init conf, reopen rd
+	std::cout<<"\n===================reset fw============================\n"<<std::endl;
+	m_fw->SendFirmwareCommand("RESET");
+	m_rd->Close();
+	std::this_thread::sleep_for(3s);
+	fw_init();
+	fw_conf();
+	m_rd->Open();
+	fw_start();
+	std::cout<<"===================finish reset fw============================\n"<<std::endl;	
+	tp_reset_fw = std::chrono::system_clock::now() + 10s;
+      }
       continue;
     }
-    m_read_nodata_loopn = 0;
     m_st_n_ev_input_now ++;
+
     uint64_t next_p_ring_write = m_count_ring_write % m_size_ring;
     if(next_p_ring_write == m_hot_p_read){
       // buffer full, permanent data lose
@@ -265,6 +259,12 @@ uint64_t Layer::AsyncWatchDog(){
   m_tp_run_begin = std::chrono::system_clock::now();
   m_tp_old = m_tp_run_begin;
   m_is_async_watching = true;
+
+  m_st_n_tg_ev_old =0;
+  m_st_n_ev_input_old = 0;
+  m_st_n_ev_bad_old =0;
+  m_st_n_ev_overflow_old = 0;
+
   
   while(m_is_async_watching){
     std::this_thread::sleep_for(1s);

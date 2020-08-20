@@ -27,10 +27,6 @@ namespace altel{
     bool m_is_async_reading{false};
     bool m_is_async_watching{false};
 
-    std::atomic_uint64_t m_read_nodata_loopn{0};
-    std::future<uint64_t> m_fut_async_restart;
-    bool m_is_restart_running{0};
-
     uint64_t m_extension{0};
 
     //status variable:
