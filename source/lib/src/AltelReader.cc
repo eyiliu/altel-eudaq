@@ -29,7 +29,7 @@ AltelReader::AltelReader(const std::string& json_str)
   rapidjson::GenericDocument<rapidjson::UTF8<char>, rapidjson::CrtAllocator>  js_doc;
   js_doc.Parse(json_str);
   if(js_doc.HasParseError()){
-    std::fprintf(stderr, "ERROR<%s>: JSON parse error: %s (at string positon %u)\n",  __func__,
+    std::fprintf(stderr, "ERROR<%s>: JSON parse error: %s (at string positon %lu)\n",  __func__,
                  rapidjson::GetParseError_En(js_doc.GetParseError()), js_doc.GetErrorOffset());
     throw;
   }

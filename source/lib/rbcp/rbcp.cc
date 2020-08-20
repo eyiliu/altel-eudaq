@@ -112,10 +112,10 @@ int rbcp::rbcp_com(const char* ipAddr, unsigned int port, struct rbcp_header* se
   int sndDataLen;
   int cmdPckLen;
 
-  char sndBuf[1024];
+  char sndBuf[2048];
   int i, j = 0;
   int rcvdBytes;
-  char rcvdBuf[1024];
+  char rcvdBuf[2048];
   int numReTrans =0;
 
   if(RBCP_DEBUG) puts("\nCreate socket...\n");

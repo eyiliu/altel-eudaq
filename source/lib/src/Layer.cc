@@ -106,7 +106,6 @@ void Layer::fw_init(){
   if(!m_fw) return;
 
   //m_fw->SendFirmwareCommand("RESET");
-  
   m_fw->SetFirmwareRegister("TRIG_DELAY", 1); //25ns per dig (FrameDuration?)
   m_fw->SetFirmwareRegister("GAP_INT_TRIG", 20);
 

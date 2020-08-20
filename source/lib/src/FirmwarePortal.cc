@@ -16,7 +16,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str, const std::string &i
     m_json.Parse(json_str.c_str());
   }
   if(m_json.HasParseError()){
-    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
+    fprintf(stderr, "JSON parse error: %s (at string positon %lu)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
     throw;
   }
 }
@@ -25,7 +25,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
   rapidjson::GenericDocument<rapidjson::UTF8<char>, rapidjson::CrtAllocator>  js_doc;
   js_doc.Parse(json_str);
   if(js_doc.HasParseError()){
-    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(js_doc.GetParseError()), js_doc.GetErrorOffset());
+    fprintf(stderr, "JSON parse error: %s (at string positon %lu)", rapidjson::GetParseError_En(js_doc.GetParseError()), js_doc.GetErrorOffset());
     throw;
   }
   m_js_conf.CopyFrom<rapidjson::CrtAllocator>(js_doc, m_jsa);
@@ -46,7 +46,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
   std::string reg_str;
   if(reg_file_path == "builtin"){
     reg_str = altel_reg_cmd_list_content;
-    std::cout<<"=====================builting "<< altel_reg_cmd_list_content<<std::endl;
+    // std::cout<<"=====================builting "<< altel_reg_cmd_list_content<<std::endl;
   }
   else{
     reg_str = LoadFileToString(reg_file_path);
@@ -58,7 +58,7 @@ FirmwarePortal::FirmwarePortal(const std::string &json_str){
 
   m_json.Parse(reg_str.c_str());
   if(m_json.HasParseError()){
-    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
+    fprintf(stderr, "JSON parse error: %s (at string positon %lu)", rapidjson::GetParseError_En(m_json.GetParseError()), m_json.GetErrorOffset());
     throw;
   }
 }
@@ -74,7 +74,7 @@ void  FirmwarePortal::WriteByte(uint64_t address, uint64_t value){
   // rbcp_write("131.169.133.173", 4660, static_cast<uint32_t>(address), static_cast<uint8_t>(value));
   rbcp r(m_alpide_ip_addr);
   std::string recvStr(100, 0);
-  r.DispatchCommand("wrb",  address, value, NULL);
+  r.DispatchCommand("wrb",  address, value, &recvStr);
 };
 
 

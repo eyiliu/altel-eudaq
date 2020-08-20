@@ -10,7 +10,7 @@ Telescope::Telescope(const std::string& file_context){
   js_doc.Parse(file_context);
 
   if(js_doc.HasParseError()){
-    fprintf(stderr, "JSON parse error: %s (at string position %u) \n", rapidjson::GetParseError_En(js_doc.GetParseError()), js_doc.GetErrorOffset());
+    fprintf(stderr, "JSON parse error: %s (at string position %lu) \n", rapidjson::GetParseError_En(js_doc.GetParseError()), js_doc.GetErrorOffset());
     throw;
   }
   const auto &js_obj = js_doc.GetObject();
@@ -97,6 +97,7 @@ Telescope::Telescope(const std::string& file_context){
     }
     l->m_js_conf.CopyFrom(js_tele_conf[name], l->m_jsa);
   }
+
 }
 
 Telescope::~Telescope(){
@@ -302,7 +303,7 @@ uint64_t Telescope::AsyncRead(){
   std::fwrite(reinterpret_cast<const char *>("]"), 1, 2, fd);
   fclose(fd);
   std::fprintf(stdout, "Tele: disk file closed\n");
-  std::fprintf(stdout,"- %s  %llu Events\n", data_path.c_str(), n_ev); 
+  std::fprintf(stdout,"- %s  %lu Events\n", data_path.c_str(), n_ev); 
   return n_ev;
 }
 
@@ -322,7 +323,7 @@ uint64_t Telescope::AsyncWatchDog(){
       js_status.AddMember(std::move(name), std::move(value), m_jsa);      
     }
     uint64_t st_n_ev = m_st_n_ev;
-    std::fprintf(stdout, "Tele: disk saved events(%u) \n\n", st_n_ev);
+    std::fprintf(stdout, "Tele: disk saved events(%lu) \n\n", st_n_ev);
     m_flag_next_event_add_conf = true;
 
     //TODO: make a json object to keep status;
