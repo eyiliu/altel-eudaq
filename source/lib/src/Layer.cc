@@ -2,9 +2,8 @@
 #include <regex>
 #include "Layer.hh"
 
-using namespace std::chrono_literals;
+//using namespace std::chrono_literals;
 using namespace altel;
-
 
 Layer::~Layer(){
 
@@ -187,22 +186,22 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
   m_st_n_ev_overflow_now =0;
   m_st_n_tg_ev_begin = 0;
   
-  std::chrono::system_clock::time_point tp_reset_fw = std::chrono::system_clock::now() + 10s;
+  std::chrono::system_clock::time_point tp_reset_fw = std::chrono::system_clock::now() + std::chrono::seconds(10);
   while (m_is_async_reading){
-    auto df = m_rd? m_rd->Read(1000ms):nullptr; // TODO: read a vector
+    auto df = m_rd? m_rd->Read(std::chrono::seconds(1)):nullptr; // TODO: read a vector
     if(!df){
       if(!m_st_n_ev_input_now && std::chrono::system_clock::now() > tp_reset_fw){
 	//reset fw, init conf, reopen rd
 	std::cout<<"\n===================reset fw============================\n"<<std::endl;
 	m_fw->SendFirmwareCommand("RESET");
 	m_rd->Close();
-	std::this_thread::sleep_for(3s);
+	std::this_thread::sleep_for(std::chrono::seconds(3));
 	fw_init();
 	fw_conf();
 	m_rd->Open();
 	fw_start();
 	std::cout<<"===================finish reset fw============================\n"<<std::endl;	
-	tp_reset_fw = std::chrono::system_clock::now() + 10s;
+	tp_reset_fw = std::chrono::system_clock::now() + std::chrono::seconds(10);
       }
       continue;
     }
@@ -267,7 +266,7 @@ uint64_t Layer::AsyncWatchDog(){
 
   
   while(m_is_async_watching){
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     uint64_t st_n_tg_ev_begin = m_st_n_tg_ev_begin;
     uint64_t st_n_tg_ev_now = m_st_n_tg_ev_now;
     uint64_t st_n_ev_input_now = m_st_n_ev_input_now;
@@ -315,7 +314,7 @@ uint64_t Layer::AsyncWatchDog(){
                                    );
     
     {
-      std::unique_lock lk(m_mtx_st);
+      std::unique_lock<std::mutex> lk(m_mtx_st);
       m_st_string = std::move(st_string_new);
     }
     
@@ -330,7 +329,7 @@ uint64_t Layer::AsyncWatchDog(){
 }
 
 std::string  Layer::GetStatusString(){
-  std::unique_lock lk(m_mtx_st);
+  std::unique_lock<std::mutex> lk(m_mtx_st);
   return m_st_string;
 }
 

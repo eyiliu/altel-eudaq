@@ -22,11 +22,11 @@ namespace altel{
 
     std::vector<DataFrameSP> m_ev_last;
     std::vector<DataFrameSP> m_ev_last_empty;
-    std::atomic_uint64_t m_mon_ev_read{0};
-    std::atomic_uint64_t m_mon_ev_write{0};
+    std::atomic<uint64_t> m_mon_ev_read{0};
+    std::atomic<uint64_t> m_mon_ev_write{0};
     std::vector<DataFrameSP> ReadEvent_Lastcopy();
 
-    std::atomic_uint64_t m_st_n_ev{0};
+    std::atomic<uint64_t> m_st_n_ev{0};
 
     ~Telescope();
     Telescope(const std::string& file_context);
@@ -46,8 +46,8 @@ namespace altel{
     rapidjson::GenericValue<rapidjson::UTF8<char>, rapidjson::CrtAllocator> m_js_telescope;
 
     rapidjson::GenericValue<rapidjson::UTF8<char>, rapidjson::CrtAllocator>  m_js_status;
-    std::atomic_uint64_t m_count_st_js_write{0};
-    std::atomic_uint64_t m_count_st_js_read{0};
+    std::atomic<uint64_t> m_count_st_js_write{0};
+    std::atomic<uint64_t> m_count_st_js_read{0};
   };
 }
 #endif

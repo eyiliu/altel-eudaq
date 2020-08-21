@@ -2,7 +2,7 @@
 
 #include <regex>
 
-using namespace std::chrono_literals;
+//using namespace std::chrono_literals;
 using namespace altel;
 
 Telescope::Telescope(const std::string& file_context){
@@ -240,7 +240,7 @@ uint64_t Telescope::AsyncRead(){
   auto now = std::chrono::system_clock::now();
   auto now_c = std::chrono::system_clock::to_time_t(now);
   std::stringstream ss;
-  ss<<std::put_time(std::localtime(&now_c), "%y%m%d%H%M%S");
+  //ss<<std::put_time(std::localtime(&now_c), "%y%m%d%H%M%S");
   std::string now_str = ss.str();
   std::string data_path = "data/alpide_"+now_str+".json";
   FILE* fd = fopen(data_path.c_str(), "wb");
@@ -253,7 +253,7 @@ uint64_t Telescope::AsyncRead(){
   while (m_is_async_reading){
     auto ev = ReadEvent();
     if(ev.empty()){
-      std::this_thread::sleep_for(100us);
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
       continue;
     }
 
@@ -311,7 +311,7 @@ uint64_t Telescope::AsyncWatchDog(){
   m_is_async_watching = true;
   while(m_is_async_watching){
     rapidjson::GenericValue<rapidjson::UTF8<char>, rapidjson::CrtAllocator> js_status(rapidjson::kObjectType);
-    std::this_thread::sleep_for(1s);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     for(auto &l: m_vec_layer){
       std::string l_status = l->GetStatusString();
       std::fprintf(stdout, "%s\n", l_status.c_str());
@@ -330,7 +330,7 @@ uint64_t Telescope::AsyncWatchDog(){
     if(m_count_st_js_read == m_count_st_js_write){
       std::stringstream ss;
       std::time_t t = std::time(nullptr);
-      ss<<std::put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S");
+      //ss<<put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S");
       std::string now_str = ss.str();
       js_status.AddMember("time", std::move(now_str), m_jsa);
       m_js_status = std::move(js_status);

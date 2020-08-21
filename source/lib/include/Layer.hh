@@ -21,8 +21,8 @@ namespace altel{
     DataFrameSP m_ring_end;
 
     uint64_t m_size_ring{200000};
-    std::atomic_uint64_t m_count_ring_write;
-    std::atomic_uint64_t m_hot_p_read;
+    std::atomic<uint64_t> m_count_ring_write;
+    std::atomic<uint64_t> m_hot_p_read;
     uint64_t m_count_ring_read;
     bool m_is_async_reading{false};
     bool m_is_async_watching{false};
@@ -30,12 +30,12 @@ namespace altel{
     uint64_t m_extension{0};
 
     //status variable:
-    std::atomic_uint64_t m_st_n_tg_ev_now{0};
-    std::atomic_uint64_t m_st_n_ev_input_now{0};
-    std::atomic_uint64_t m_st_n_ev_output_now{0};
-    std::atomic_uint64_t m_st_n_ev_bad_now{0};
-    std::atomic_uint64_t m_st_n_ev_overflow_now{0};
-    std::atomic_uint64_t m_st_n_tg_ev_begin{0};
+    std::atomic<uint64_t> m_st_n_tg_ev_now{0};
+    std::atomic<uint64_t> m_st_n_ev_input_now{0};
+    std::atomic<uint64_t> m_st_n_ev_output_now{0};
+    std::atomic<uint64_t> m_st_n_ev_bad_now{0};
+    std::atomic<uint64_t> m_st_n_ev_overflow_now{0};
+    std::atomic<uint64_t> m_st_n_tg_ev_begin{0};
 
     uint64_t m_st_n_tg_ev_old{0};
     uint64_t m_st_n_ev_input_old{0};

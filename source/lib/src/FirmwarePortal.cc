@@ -572,16 +572,8 @@ uint64_t FirmwarePortal::GetAlpideRegister(const std::string& name){
 std::string FirmwarePortal::LoadFileToString(const std::string& path){
   std::ifstream ifs(path);
   if(!ifs.good()){
-    std::string bin_path_str = binaryPath()+"/"+path;
-    std::ifstream ifs_bin(bin_path_str);
-    if(ifs_bin.good()){
-      ifs = std::move(ifs_bin);
-    }
-    else{
       std::cerr<<"LoadFileToString:: ERROR, unable to load file<"<<path<<">\n";
-      std::cerr<<"LoadFileToString:: ERROR, unable to load file<"<<bin_path_str<<">\n";
       throw;
-    }
   }
 
   std::string str;

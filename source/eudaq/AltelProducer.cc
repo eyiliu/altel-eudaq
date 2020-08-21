@@ -6,7 +6,6 @@
 #include <thread>
 
 #include "Telescope.hh"
-using namespace std::chrono_literals;
 
 namespace altel{
   class AltelProducer : public eudaq::Producer {
@@ -38,16 +37,7 @@ namespace{
   std::string LoadFileToString(const std::string& path){
     std::ifstream ifs(path);
     if(!ifs.good()){
-      std::string bin_path_str = binaryPath()+"/"+path;
-      std::ifstream ifs_bin(bin_path_str);
-      if(ifs_bin.good()){
-        ifs = std::move(ifs_bin);
-      }
-      else{
         std::cerr<<"LoadFileToString:: ERROR, unable to load file<"<<path<<">\n";
-        std::cerr<<"LoadFileToString:: ERROR, unable to load file<"<<bin_path_str<<">\n";
-        throw;
-      }
     }
 
     std::string str;
@@ -92,7 +82,7 @@ void altel::AltelProducer::RunLoop(){
   while(!m_exit_of_run){
     auto ev_tel = m_tel->ReadEvent();
     if(ev_tel.empty()){
-      std::this_thread::sleep_for(100us);
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
       continue;
     }
 
