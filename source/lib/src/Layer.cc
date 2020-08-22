@@ -214,36 +214,37 @@ uint64_t Layer::AsyncPushBack(){ // IMPROVE IT AS A RING
       continue;
     }
 
-    uint16_t tg_l15 = 0x7fff & df->GetCounter();
-    //std::cout<< "id "<< tg_l15 <<"  ";
+    uint16_t tg_l16 = 0xffff & df->GetCounter();
+    //std::cout<< "id "<< tg_l16 <<"  ";
     if(flag_wait_first_event){
       flag_wait_first_event = false;
       m_extension = df->GetExtension() ;
-      tg_expected = tg_l15;
-      m_st_n_tg_ev_begin = tg_expected-1;
+      tg_expected = tg_l16;
+      m_st_n_tg_ev_begin = tg_expected;
     }
-    if(tg_l15 != (tg_expected & 0x7fff)){
-      // std::cout<<(tg_expected & 0x7fff)<< " " << tg_l15<<"\n";
-      uint32_t tg_guess_0 = (tg_expected & 0xffff8000) + tg_l15;
-      uint32_t tg_guess_1 = (tg_expected & 0xffff8000) + 0x8000 + tg_l15;
+    if(tg_l16 != (tg_expected & 0xffff)){
+      // std::cout<<(tg_expected & 0x7fff)<< " " << tg_l16<<"\n";
+      uint32_t tg_guess_0 = (tg_expected & 0xffff0000) + tg_l16;
+      uint32_t tg_guess_1 = (tg_expected & 0xffff0000) + 0x10000 + tg_l16;
       if(tg_guess_0 > tg_expected && tg_guess_0 - tg_expected < 200){
-        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
+        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0xffff) << " : "<< tg_l16<<" ("<< m_extension <<") \n";
         tg_expected =tg_guess_0;
       }
       else if (tg_guess_1 > tg_expected && tg_guess_1 - tg_expected < 200){
-        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<< m_extension <<") \n";
+        // std::cout<< "missing trigger, expecting : provided "<< (tg_expected & 0xffff) << " : "<< tg_l16<<" ("<< m_extension <<") \n";
         tg_expected =tg_guess_1;
       }
       else{
-        // std::cout<< "broken trigger ID, expecting : provided "<< (tg_expected & 0x7fff) << " : "<< tg_l15<<" ("<<df->GetExtension() <<") \n";
+        // std::cout<< "broken trigger ID, expecting : provided "<< (tg_expected & 0xffff) << " : "<< tg_l16<<" ("<<df->GetExtension() <<") \n";
         tg_expected ++;
         m_st_n_ev_bad_now ++;
         // permanent data lose
         continue;
       }
     }
-    df->SetTrigger(tg_expected-1); //TODO: fix tlu firmware, mismatch between modes
-    m_st_n_tg_ev_now = tg_expected-1;
+    //TODO: fix tlu firmware, mismatch between modes AIDA start at 1, EUDET start at 0
+    df->SetTrigger(tg_expected); 
+    m_st_n_tg_ev_now = tg_expected;
 
     m_vec_ring_ev[next_p_ring_write] = df;
     m_count_ring_write ++;
