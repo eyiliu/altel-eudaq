@@ -5,6 +5,17 @@
 //using namespace std::chrono_literals;
 using namespace altel;
 
+namespace{
+  std::string TimeNowString(const std::string& format){
+    std::time_t time_now = std::time(nullptr);
+    std::string str_buffer(100, char(0));
+    size_t n = std::strftime(&str_buffer[0], sizeof(str_buffer.size()),
+                             format.c_str(), std::localtime(&time_now));
+    str_buffer.resize(n?(n-1):0);
+    return str_buffer;
+  }
+}
+
 Telescope::Telescope(const std::string& file_context){
   rapidjson::GenericDocument<rapidjson::UTF8<char>, rapidjson::CrtAllocator>  js_doc;
   js_doc.Parse(file_context);
@@ -239,9 +250,7 @@ void Telescope::Stop(){
 uint64_t Telescope::AsyncRead(){
   auto now = std::chrono::system_clock::now();
   auto now_c = std::chrono::system_clock::to_time_t(now);
-  std::stringstream ss;
-  //ss<<std::put_time(std::localtime(&now_c), "%y%m%d%H%M%S");
-  std::string now_str = ss.str();
+  std::string now_str = TimeNowString("%y%m%d%H%M%S");
   std::string data_path = "data/alpide_"+now_str+".json";
   FILE* fd = fopen(data_path.c_str(), "wb");
   rapidjson::StringBuffer js_sb;
@@ -328,14 +337,10 @@ uint64_t Telescope::AsyncWatchDog(){
 
     //TODO: make a json object to keep status;
     if(m_count_st_js_read == m_count_st_js_write){
-      std::stringstream ss;
-      std::time_t t = std::time(nullptr);
-      //ss<<put_time(std::localtime(&t), "%Y-%m-%d %H:%M:%S");
-      std::string now_str = ss.str();
+      std::string now_str = TimeNowString("%Y-%m-%d %H:%M:%S");
       js_status.AddMember("time", std::move(now_str), m_jsa);
       m_js_status = std::move(js_status);
-      m_count_st_js_write ++;
-      
+      m_count_st_js_write ++;      
     }
   }
   //sleep and watch running time status;
