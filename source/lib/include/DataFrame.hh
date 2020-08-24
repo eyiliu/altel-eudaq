@@ -135,8 +135,6 @@ namespace altel{
 
   using DataPackSP = std::shared_ptr<DataPack>;
 }
-using JadeDataFrame = altel::DataFrame;
-using JadeDataFrameSP = std::shared_ptr<altel::DataFrame>;
 
 #endif
 

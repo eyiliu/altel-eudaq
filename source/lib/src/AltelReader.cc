@@ -20,6 +20,27 @@
 #define HEADER_BYTE  (0x5a)
 #define FOOTER_BYTE  (0xa5)
 
+
+
+namespace{
+  std::string CStringToHexString(const char *bin, int len){
+    constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                               '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    const unsigned char* data = (const unsigned char*)(bin);
+    std::string s(len * 2, ' ');
+    for (int i = 0; i < len; ++i) {
+      s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+      s[2 * i + 1] = hexmap[data[i] & 0x0F];
+    }
+    return s;
+  }
+
+  std::string StringToHexString(const std::string bin){
+    return CStringToHexString(bin.data(), bin.size());
+  }
+}
+
+
 AltelReader::~AltelReader(){
   Close();
 }
@@ -73,7 +94,7 @@ AltelReader::AltelReader(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidj
   else{
     std::fprintf(stderr, "ERROR<%s>: Unknown reader protocol: %s\n", __func__, js_proto.GetString());
     throw;
-  }  
+  }
 
 };
 
@@ -99,10 +120,10 @@ void AltelReader::Open(){
     if(connect(m_fd, (struct sockaddr *)&tcpaddr, sizeof(tcpaddr)) < 0){
       //when connect fails, go to follow lines
       if(errno != EINPROGRESS){
-        std::fprintf(stderr, "ERROR<%s>: unable to start TCP connection, error code %i \n", __func__, errno);
+        std::fprintf(stderr, "ERROR<%s@%s>: unable to start TCP connection, error code %i \n", __func__, m_tcp_ip.c_str(), errno);
       }
       if(errno == 29){
-        std::fprintf(stderr, "ERROR<%s>: TCP open timeout \n", __func__);
+        std::fprintf(stderr, "ERROR<%s@%s>: TCP open timeout \n", __func__, m_tcp_ip.c_str());
       }
       fd_set fds;
       FD_ZERO(&fds);
@@ -112,7 +133,7 @@ void AltelReader::Open(){
       tv_timeout.tv_usec = 10000;
       int rc = select(m_fd+1, &fds, NULL, NULL, &tv_timeout);
       if(rc<=0){
-        std::fprintf(stderr,"ERROR<%s>: socket select returns error code %i\n", __func__, rc);
+        std::fprintf(stderr,"ERROR<%s@%s>: socket select returns error code %i\n", __func__, m_tcp_ip.c_str(),  rc);
       }
     }
   }
@@ -121,7 +142,7 @@ void AltelReader::Open(){
 void AltelReader::Close(){
   if(!m_fd)
     return;
-  
+
   if(m_flag_file){
 #ifdef _WIN32
     _close(m_fd);
@@ -137,13 +158,13 @@ void AltelReader::Close(){
 
 
 
-std::vector<JadeDataFrameSP> AltelReader::Read(size_t size_max_pkg,
-                                               const std::chrono::milliseconds &timeout_idel,
-                                               const std::chrono::milliseconds &timeout_total){
+std::vector<DataFrameSP> AltelReader::Read(size_t size_max_pkg,
+                                           const std::chrono::milliseconds &timeout_idel,
+                                           const std::chrono::milliseconds &timeout_total){
   std::chrono::system_clock::time_point tp_timeout_total = std::chrono::system_clock::now() + timeout_total;
-  std::vector<JadeDataFrameSP> pkg_v;
+  std::vector<DataFrameSP> pkg_v;
   while(1){
-    JadeDataFrameSP pkg = Read(timeout_idel);
+    DataFrameSP pkg = Read(timeout_idel);
     if(pkg){
       pkg_v.push_back(pkg);
       if(pkg_v.size()>=size_max_pkg){
@@ -160,7 +181,7 @@ std::vector<JadeDataFrameSP> AltelReader::Read(size_t size_max_pkg,
   return pkg_v;
 }
 
-JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //timeout_read_interval
+DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //timeout_read_interval
   size_t size_buf_min = 8;
   size_t size_buf = size_buf_min;
   std::string buf(size_buf, 0);
@@ -176,7 +197,7 @@ JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel)
       read_len_real = read(m_fd, &buf[size_filled], size_buf-size_filled);
 #endif
       if(read_len_real < 0){
-        std::fprintf(stderr, "ERROR<%s>: read(...) returns error code %i\n", __func__, read_len_real);
+        std::fprintf(stderr, "ERROR<%s@%s>: read(...) returns error code %i\n", __func__, m_tcp_ip.c_str(), read_len_real);
         throw;
       }
 
@@ -192,12 +213,12 @@ JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel)
               if(m_file_terminate_eof)
                 return nullptr;
               else{
-                std::fprintf(stdout, "INFO<%s>: no data receving. (%s)\n",  __func__, m_tcp_ip.c_str());
+                std::fprintf(stdout, "INFO<%s@%s>: no data receving.\n",  __func__, m_tcp_ip.c_str());
               }
               return nullptr;
             }
             //TODO: keep remain data, nothrow
-            std::fprintf(stderr, "ERROR<%s>: error of incomplete data reading \n", __func__);
+            std::fprintf(stderr, "ERROR<%s@%s>: error of incomplete data reading \n", __func__ , m_tcp_ip.c_str());
             throw;
           }
         }
@@ -222,12 +243,11 @@ JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel)
           if(std::chrono::system_clock::now() > tp_timeout_idel){
             //std::cerr<<"JadeRead: reading timeout\n";
             if(size_filled == 0){
-              std::fprintf(stdout, "INFO<%s>: no data receving. (%s)\n", __func__ ,m_tcp_ip.c_str());
+              std::fprintf(stdout, "INFO<%s@%s>: no data receving.\n", __func__ ,m_tcp_ip.c_str());
               return nullptr;
             }
-            std::fprintf(stderr, "ERROR<%s>: error of incomplete data reading \n", __func__);
-            std::cerr<<"replace here!! hextring\n";
-            // std::cerr<<JadeUtils::ToHexString(buf.data(), size_filled)<<"\n";
+            std::fprintf(stderr, "ERROR<%s@%s>: error of incomplete data reading \n", __func__, m_tcp_ip.c_str());
+            std::fprintf(stderr, "dumpping data Hex:\n%s\n", CStringToHexString(buf.data(), size_filled).c_str());
             //TODO: keep remain data, nothrow, ? try a again?
             throw;
           }
@@ -237,23 +257,23 @@ JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel)
       read_len_real = recv(m_fd, &buf[size_filled], (unsigned int)(size_buf-size_filled), MSG_WAITALL);
       if( read_len_real == 0) continue;
       if(read_len_real < 0){
-        std::fprintf(stderr, "ERROR<%s>: read(...) returns error code %i\n", __func__, read_len_real);
+        std::fprintf(stderr, "ERROR<%s@%s>: read(...) returns error code %i\n", __func__, m_tcp_ip.c_str(), read_len_real);
         throw;
       }
       // std::cout<<"recv len "<<read_len_real<<std::endl;
     }
-    
+
     size_filled += read_len_real;
     can_time_out = false;
-    // std::cout<<" size_buf size_buf_min  size_filled<< size_buf << " "<< size_buf_min<<" " << size_filled<<std::endl;    
+    // std::cout<<" size_buf size_buf_min  size_filled<< size_buf << " "<< size_buf_min<<" " << size_filled<<std::endl;
     if(size_buf == size_buf_min  && size_filled >= size_buf_min){
       uint8_t header_byte =  buf.front();
       uint32_t w1 = BE32TOH(*reinterpret_cast<const uint32_t*>(buf.data()+1));
       uint8_t rsv = (w1>>20) & 0xf;
       uint32_t size_payload = (w1 & 0xfffff);
-      // std::cout<<" size_payload "<< size_payload<<std::endl;      
+      // std::cout<<" size_payload "<< size_payload<<std::endl;
       if(header_byte != HEADER_BYTE){
-        std::fprintf(stderr, "ERROR<%s>: wrong header of data frame\n", __func__);
+        std::fprintf(stderr, "ERROR<%s@%s>: wrong header of data frame\n", __func__, m_tcp_ip.c_str());
         //TODO: skip brocken data
         throw;
       }
@@ -263,16 +283,13 @@ JadeDataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel)
   }
   uint8_t footer_byte =  buf.back();
   if(footer_byte != FOOTER_BYTE){
-    std::fprintf(stderr, "ERROR<%s>: wrong footer of data frame\n", __func__);
-    std::cerr<<"\nreplace here!! hextring\n";
-    // std::cout<<JadeUtils::ToHexString(buf)<<std::endl;
-    std::cerr<<"\n";
-    //TODO: skip brocken data
+    std::fprintf(stderr, "ERROR<%s@%s>:  wrong footer of data frame\n", __func__,  m_tcp_ip.c_str());
+    std::fprintf(stderr, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
+    //TODO: skip broken data. do not know what happenned to broken data
     throw;
   }
-  
-  // std::cout<<JadeUtils::ToHexString(buf)<<std::endl;
-  return std::make_shared<JadeDataFrame>(std::move(buf));
+  // std::fprintf(stdout, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
+  return std::make_shared<DataFrame>(std::move(buf));
 }
 
 std::string AltelReader::LoadFileToString(const std::string& path){
