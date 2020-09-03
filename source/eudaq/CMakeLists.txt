@@ -1,4 +1,4 @@
-option(ALTEL_BUILD_EUDAQ_PRODUCER "build Producer EUDAQ2?" OFF)
+option(ALTEL_BUILD_EUDAQ_PRODUCER "build Producer EUDAQ2?" ON)
 if(NOT ALTEL_BUILD_EUDAQ_PRODUCER)
   return()
 endif()
@@ -40,3 +40,5 @@ install(TARGETS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
+
+add_subdirectory(legacy)
