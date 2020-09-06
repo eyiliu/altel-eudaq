@@ -51,7 +51,6 @@ bool JadeRawEvent2StdEventConverter::Converting(eudaq::EventSPC d1, eudaq::StdEv
   uint16_t bn = 0;//TODO, multiple-planes/producer
   std::vector<eudaq::StandardPlane*> v_planes;
   for(size_t i=0; i<z_n_pixel; i++){
-    std::cout<< ext<<std::endl;
     eudaq::StandardPlane* p = &(d2->AddPlane(eudaq::StandardPlane(PLANE_NUMBER_OFFSET+bn+i+ext, "alpide", "alpide")));
     p->SetSizeZS(x_n_pixel, y_n_pixel, 0); //TODO: check this function for its real meaning
     //p->SetSizeZS(y_n_pixel, x_n_pixel, 0); //TODO: check this function for its real meaning
