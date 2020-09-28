@@ -12,7 +12,6 @@ message(STATUS "CMAKE_HOST_SYSTEM_PROCESSOR: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 message(STATUS "CMAKE_SYSTEM:                ${CMAKE_SYSTEM}")
 message(STATUS "CMAKE_SYSTEM_PROCESSOR:      ${CMAKE_SYSTEM_PROCESSOR}")
 
-
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX ${PROJECT_SOURCE_DIR}/INSTALL CACHE PATH "Default prefix of install directories" FORCE)
 endif()
@@ -88,10 +87,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 
-# include(cmake/ActsExamples.cmake)
-
 add_subdirectory(source)
-
 
 # install-tree
 set(CONF_INCLUDE_DIRS "\${CMAKE_CURRENT_LIST_DIR}/../include")
@@ -104,11 +100,9 @@ install(FILES
 
 install(EXPORT ${PROJECT_NAME}Targets DESTINATION cmake)
 
-
 # build-tree
 set(CONF_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../source/lib/include ${PROJECT_BINARY_DIR})
 configure_file(cmake/Config.cmake.in          ${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}Config.cmake @ONLY)
 configure_file(cmake/ConfigVersion.cmake.in   ${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake @ONLY)
 
 export(PACKAGE ${PROJECT_NAME})
-

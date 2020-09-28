@@ -34,7 +34,7 @@ set(LIB_PUBLIC_HEADERS mysystem.hh)
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0") 
   set_target_properties(mycommon PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")  
 else()
-  message("Unable to export PUBLIC_HEADER from interface target by CMake version less than 3.15")
+  message(STATUS "Unable to export PUBLIC_HEADER from interface target by CMake < 3.15, using CMake INSTALL FILES alternatively")
   install(FILES ${LIB_PUBLIC_HEADERS} DESTINATION include)
 endif()
 
