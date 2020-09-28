@@ -198,27 +198,27 @@ static void str_array_init(struct array* a)
 static BOOL str_array_push(struct parsed_symbol* sym, const char* ptr, int len,
                            struct array* a)
 {
-    char**      new;
+    char**      newx;
 
     assert(ptr);
     assert(a);
 
     if (!a->alloc)
     {
-        new = und_alloc(sym, (a->alloc = 32) * sizeof(a->elts[0]));
-        if (!new) return FALSE;
-        a->elts = new;
+      newx = (char**) und_alloc(sym, (a->alloc = 32) * sizeof(a->elts[0]));
+        if (!newx) return FALSE;
+        a->elts = newx;
     }
     else if (a->max >= a->alloc)
     {
-        new = und_alloc(sym, (a->alloc * 2) * sizeof(a->elts[0]));
-        if (!new) return FALSE;
-        memcpy(new, a->elts, a->alloc * sizeof(a->elts[0]));
+        newx = (char**) und_alloc(sym, (a->alloc * 2) * sizeof(a->elts[0]));
+        if (!newx) return FALSE;
+        memcpy(newx, a->elts, a->alloc * sizeof(a->elts[0]));
         a->alloc *= 2;
-        a->elts = new;
+        a->elts = newx;
     }
     if (len == -1) len = strlen(ptr);
-    a->elts[a->num] = und_alloc(sym, len + 1);
+    a->elts[a->num] = (char*) und_alloc(sym, len + 1);
     assert(a->elts[a->num]);
     memcpy(a->elts[a->num], ptr, len);
     a->elts[a->num][len] = '\0'; 
@@ -287,7 +287,7 @@ static char* str_printf(struct parsed_symbol* sym, const char* format, ...)
         else len++;
     }
     va_end(args);
-    if (!(tmp = und_alloc(sym, len))) return NULL;
+    if (!(tmp = (char*) und_alloc(sym, len))) return NULL;
     va_start(args, format);
     for (p = tmp, i = 0; format[i]; i++)
     {
@@ -334,7 +334,7 @@ static const char* get_number(struct parsed_symbol* sym)
     }
     if (*sym->current >= '0' && *sym->current <= '8')
     {
-        ptr = und_alloc(sym, 3);
+        ptr = (char*) und_alloc(sym, 3);
         if (sgn) ptr[0] = '-';
         ptr[sgn ? 1 : 0] = *sym->current + 1;
         ptr[sgn ? 2 : 1] = '\0';
@@ -342,7 +342,7 @@ static const char* get_number(struct parsed_symbol* sym)
     }
     else if (*sym->current == '9')
     {
-        ptr = und_alloc(sym, 4);
+        ptr = (char*) und_alloc(sym, 4);
         if (sgn) ptr[0] = '-';
         ptr[sgn ? 1 : 0] = '1';
         ptr[sgn ? 2 : 1] = '0';
@@ -360,7 +360,7 @@ static const char* get_number(struct parsed_symbol* sym)
         }
         if (*sym->current != '@') return NULL;
 
-        ptr = und_alloc(sym, 17);
+        ptr = (char*) und_alloc(sym, 17);
         sprintf(ptr, "%s%u", sgn ? "-" : "", ret);
         sym->current++;
     }
@@ -678,7 +678,7 @@ static char* get_class_string(struct parsed_symbol* sym, int start)
         assert(a->elts[i]);
         len += 2 + strlen(a->elts[i]);
     }
-    if (!(ret = und_alloc(sym, len - 1))) return NULL;
+    if (!(ret = (char*) und_alloc(sym, len - 1))) return NULL;
     for (len = 0, i = a->num - 1; i >= start; i--)
     {
         sz = strlen(a->elts[i]);
@@ -1588,7 +1588,7 @@ char* CDECL __unDNameEx(char* buffer, const char* mangled, int buflen,
     }
     else
     {
-        buffer = memget(strlen(result) + 1);
+        buffer = (char*) memget(strlen(result) + 1);
         if (buffer) strcpy(buffer, result);
     }
     }

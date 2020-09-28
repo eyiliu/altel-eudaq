@@ -2,6 +2,9 @@ add_subdirectory(linenoiseng)
 add_subdirectory(getopt)
 add_subdirectory(rapidjson)
 add_subdirectory(gte)
+add_subdirectory(base64)
+add_subdirectory(demangle)
+add_subdirectory(factory)
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -10,11 +13,14 @@ find_package(Threads REQUIRED)
 add_library(mycommon INTERFACE)
 
 target_link_libraries(mycommon INTERFACE
+  ${CMAKE_DL_LIBS} #dl not sure if it works with full static
+  Threads::Threads
   linenoiseng
   getopt
   rapidjson
-  Threads::Threads
-  ${CMAKE_DL_LIBS} #dl not sure if it works with full static
+  base64
+  demangle
+  factory
   gte
   )
 
@@ -25,8 +31,12 @@ target_include_directories(mycommon
   )
 
 set(LIB_PUBLIC_HEADERS mysystem.hh)
-# only work if cmake >3.15
-# set_target_properties(mycommon PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.15.0") 
+  set_target_properties(mycommon PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")  
+else()
+  message("Unable to export PUBLIC_HEADER from interface target by CMake version less than 3.15")
+  install(FILES ${LIB_PUBLIC_HEADERS} DESTINATION include)
+endif()
 
 install(TARGETS mycommon
   EXPORT ${PROJECT_NAME}Targets
@@ -35,8 +45,4 @@ install(TARGETS mycommon
   ARCHIVE       DESTINATION lib      COMPONENT devel
   PUBLIC_HEADER DESTINATION include  COMPONENT devel
   RESOURCE      DESTINATION resource COMPONENT runtime
-  )
-
-install(FILES ${LIB_PUBLIC_HEADERS}
-  DESTINATION include
   )

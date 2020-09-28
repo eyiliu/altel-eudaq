@@ -1,39 +1,38 @@
-#ifndef JADE_FACTORY_HH_
-#define JADE_FACTORY_HH_
-#include <map>
+#ifndef __FACTORY_HH_
+#define __FACTORY_HH_
+
+#include <cstdint>
+#include <cstdio>
+
+#include <unordered_map>
 #include <memory>
-#include <iostream>
 #include <utility>
 #include <functional>
-#include <cstdint>
-
 #include <typeindex>
-#include <unordered_map>
-
 
 template <typename B>
-class JadeFactory{
-    
+class Factory{
+
 public:
 
   using UP = std::unique_ptr<B, std::function<void(B*)> >;
   using SP = std::shared_ptr<B>;
   using WP = std::weak_ptr<B>;
   using SPC = std::shared_ptr<const B>;
-    
+
   template <typename ...ARGS>
-  static typename JadeFactory<B>::UP
+  static typename Factory<B>::UP
   MakeUnique(const std::type_index& id, ARGS&& ...args);
 
   template <typename... ARGS>
   static std::unordered_map<std::type_index,
                             UP (*)(ARGS&&...)>&
   Instance();
-    
+
   template <typename D, typename... ARGS>
   static std::uint64_t
   Register(const std::type_index& id);
-  
+
 private:
   template <typename D, typename... ARGS>
   static UP MakerFun(ARGS&& ...args){
@@ -44,40 +43,40 @@ private:
 
 template <typename B>
 template <typename ...ARGS>
-typename JadeFactory<B>::UP
-JadeFactory<B>::MakeUnique(const std::type_index& id, ARGS&& ...args){
+typename Factory<B>::UP
+Factory<B>::MakeUnique(const std::type_index& id, ARGS&& ...args){
   auto &ins = Instance<ARGS&&...>();
   std::remove_reference_t<decltype( ins.at(id) )> it;
   try{
     it = ins.at(id);
   }
   catch (const std::out_of_range& oor){
-    std::cerr<<"JadeFactory:: ERROR ("<<oor.what()<<"), unable to find  "<< id.name() << " in " << (typeid(ins)).name() <<"\n";
+    std::fprintf(stderr, "Factory:: ERROR (%s), unable to find %s in %s\n", oor.what(), id.name(), (typeid(ins)).name() );
     return nullptr;
   }
   return (*it)(std::forward<ARGS>(args)...);
 };
 
-    
+
 template <typename B>
 template <typename... ARGS>
 std::unordered_map<std::type_index,
-                   typename JadeFactory<B>::UP (*)(ARGS&&...)>&
-JadeFactory<B>::Instance(){
+                   typename Factory<B>::UP (*)(ARGS&&...)>&
+Factory<B>::Instance(){
   static std::unordered_map<std::type_index,
-                            typename JadeFactory<B>::UP (*)(ARGS&&...)> m;
+                            typename Factory<B>::UP (*)(ARGS&&...)> m;
   static bool init = true;
   if(init){
-    // std::cout<<"Instance a new JadeFactory<"<<static_cast<const void *>(&m)<<">"<<std::endl;
+    // std::cout<<"Instance a new Factory<"<<static_cast<const void *>(&m)<<">"<<std::endl;
     init=false;
   }
   return m;
 };
-    
+
 template <typename B>
 template <typename D, typename... ARGS>
 std::uint64_t
-JadeFactory<B>::Register(const std::type_index& id){
+Factory<B>::Register(const std::type_index& id){
   auto &ins = Instance<ARGS&&...>();
   ins[id] = &MakerFun<D, ARGS&&...>;
   return reinterpret_cast<std::uintptr_t>(&ins);
