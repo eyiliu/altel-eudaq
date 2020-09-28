@@ -1,0 +1,7 @@
+[submodule "external/aidatlu"]
+	path = external/aidatlu
+	url = https://github.com/eyiliu/aidatlu
+        tag = v1.2-2020-August
+[submodule "external/eudaq"]
+	path = external/eudaq
+	url = https://github.com/eudaq/eudaq
