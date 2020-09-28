@@ -8,7 +8,9 @@
 
 #include <string>
 
-std::string base64_encode(unsigned char const* , unsigned int len);
-std::string base64_decode(std::string const& s);
+std::string base64_encode(unsigned char const* s, unsigned int len);
+
+std::string base64_encode(const std::string& s);
+std::string base64_decode(const std::string& s);
 
 #endif /* BASE64_H_C0CE2A47_D10E_42C9_A27C_C883944E704A */

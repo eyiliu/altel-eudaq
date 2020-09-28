@@ -1,10 +1,24 @@
 #include "JadeDataFrame.hh"
-#include "mysystem.hh"
-
+#include "JadeFactory.hh"
+#include "JadeUtils.hh"
 
 #ifdef _WIN32
 #pragma comment(lib, "Ws2_32.lib")
 #endif
+
+
+using _base_c_ = JadeDataFrame;
+using _index_c_ = JadeDataFrame;
+
+// template class DLLEXPORT JadeFactory<_base_c_>;
+// template DLLEXPORT
+// std::unordered_map<std::type_index, typename JadeFactory<_base_c_>::UP (*)(const JadeOption&)>&
+// JadeFactory<_base_c_>::Instance<const JadeOption&>();
+
+// namespace{
+//   auto _loading_index_ = JadeUtils::SetTypeIndex(std::type_index(typeid(_index_c_)));
+//   auto _loading_ = JadeFactory<_base_c_>::Register<_base_c_, const JadeOption&>(typeid(_index_c_));
+// }
 
 JadeDataFrame::JadeDataFrame(std::string&& data)
   : m_data_raw(std::move(data))
@@ -26,7 +40,7 @@ JadeDataFrame::JadeDataFrame(std::string& data)
   , m_n_y(1)
   , m_n_d(1)
 {
-
+  
 }
 
 
@@ -92,7 +106,7 @@ void JadeDataFrame::Decode(uint32_t level){
   // std::cout << JadeUtils::ToHexString(m_data_raw)<<std::endl;
   if( *p_raw_beg!=0x5a || *(p_raw_end-1)!=0xa5){
     std::cerr << "JadeDataFrame: pkg header/trailer mismatch\n";
-    // std::cerr << JadeUtils::ToHexString(m_data_raw)<<std::endl;
+    std::cerr << JadeUtils::ToHexString(m_data_raw)<<std::endl;
     std::cerr <<uint16_t((*p_raw_beg))<<std::endl;
     std::cerr <<uint16_t((*(p_raw_end-1)))<<std::endl;
     throw;

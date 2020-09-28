@@ -1,19 +1,18 @@
-#ifndef JADEPIX_JADEDATAFRAME___
-#define JADEPIX_JADEDATAFRAME___
+#ifndef JADEPIX_JADEDATAFRAME
+#define JADEPIX_JADEDATAFRAME
 
+#include "JadeSystem.hh"
 #include <algorithm>
 #include <chrono>
 #include <functional>
 #include <map>
 #include <string>
 #include <vector>
-#include <memory>
-#include <iostream>
 
 class JadeDataFrame;
 using JadeDataFrameSP = std::shared_ptr<JadeDataFrame>;
 
-class JadeDataFrame {
+class DLLEXPORT JadeDataFrame {
   public:
   JadeDataFrame(std::string& data);
   JadeDataFrame(std::string&& data);
