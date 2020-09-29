@@ -86,6 +86,7 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+add_subdirectory(external)
 
 add_subdirectory(source)
 
