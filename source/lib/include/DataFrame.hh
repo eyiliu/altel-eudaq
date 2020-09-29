@@ -22,7 +22,8 @@ namespace altel{
     DataFrame(std::string&& raw);
     DataFrame(const rapidjson::Value &js);
     DataFrame(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator> &js);
-    DataFrame() = delete;
+    DataFrame(){};
+
   
     inline void SetTrigger(uint64_t v){m_trigger = v;};
     inline uint64_t GetTrigger(){return m_trigger;};
@@ -52,7 +53,7 @@ namespace altel{
   rapidjson::GenericValue<rapidjson::UTF8<>, Allocator> DataFrame::JSON(Allocator &a) const{
     rapidjson::GenericValue<rapidjson::UTF8<>, Allocator> js;
     js.SetObject();
-    js.AddMember("det", "alptel", a);
+    js.AddMember("det", "alpide", a);
     js.AddMember("ver",  rapidjson::GenericValue<rapidjson::UTF8<>, Allocator>(s_version), a);
     js.AddMember("tri",  rapidjson::GenericValue<rapidjson::UTF8<>, Allocator>(m_trigger), a);
     js.AddMember("cnt",  rapidjson::GenericValue<rapidjson::UTF8<>, Allocator>(m_counter), a);

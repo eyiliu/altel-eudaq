@@ -40,11 +40,5 @@ install(TARGETS
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
-add_executable(oldEudaqRawDump exe/oldEudaqRawDump.cxx)
-target_link_libraries(oldEudaqRawDump PRIVATE eudaq::core mycommon)
-install(TARGETS
-  oldEudaqRawDump
-  EXPORT ${PROJECT_NAME}Targets
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib)
+
+add_subdirectory(exe)

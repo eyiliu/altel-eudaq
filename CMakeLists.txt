@@ -86,7 +86,13 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
+
 add_subdirectory(external)
+option(ALTEL_BUILD_ONLY_EXTERNAL "build only the external projects" OFF)
+if(ALTEL_BUILD_ONLY_EXTERNAL)
+  message("configured to build only the external projects")
+  return()
+endif()
 
 add_subdirectory(source)
 
