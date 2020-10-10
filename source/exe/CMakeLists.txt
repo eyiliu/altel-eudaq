@@ -1,5 +1,33 @@
+
+
+function(create_cpp_raw_string)
+  if( (${ARGC} LESS 2) OR (${ARGC} GREATER 3 ) )
+    message(FATAL_ERROR "create_cpp_raw_string require 2 or 3 arguments, but given ${ARGC}")
+  endif()
+  if(${ARGC} EQUAL 2)
+    set(RAW_STRING_DELIM "~~~cpp~raw~~~")
+  endif()
+  if(${ARGC} EQUAL 3)
+    set(RAW_STRING_DELIM ${ARGV2})
+  endif()
+  if( (NOT EXISTS ${ARGV0}) OR (${ARGV1} IS_NEWER_THAN ${ARGV0}) )
+    file(READ ${ARGV1} RAW_STRING_CONTENT)
+    set(RAW_STRING_CONTENT "R\"${RAW_STRING_DELIM}(${RAW_STRING_CONTENT})${RAW_STRING_DELIM}\"")
+    file(WRITE ${ARGV0} "${RAW_STRING_CONTENT}")
+  endif()
+endfunction()
+
+create_cpp_raw_string(${CMAKE_CURRENT_BINARY_DIR}/include/altel_reg_cmd_list_json.hh
+  ${PROJECT_SOURCE_DIR}/source/lib/misc/altel_reg_cmd_list.json)
+
 add_executable(rbcp_main rbcp_main.cc)
+
+target_include_directories(rbcp_main
+  PRIVATE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+  )
 target_link_libraries(rbcp_main PRIVATE altel-rbcp mycommon)
+
 
 install(TARGETS rbcp_main
   EXPORT ${PROJECT_NAME}Targets

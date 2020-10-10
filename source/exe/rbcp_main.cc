@@ -12,11 +12,37 @@
 #include "getopt.h"
 #include "linenoise.h"
 
+template<typename ... Args>
+static std::string FormatString( const std::string& format, Args ... args ){
+  std::size_t size = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
+  std::unique_ptr<char[]> buf( new char[ size ] );
+  std::snprintf( buf.get(), size, format.c_str(), args ... );
+  return std::string( buf.get(), buf.get() + size - 1 );
+}
+
+namespace{
+  std::string LoadFileToString(const std::string& path){
+    std::ifstream ifs(path);
+    if(!ifs.good()){
+        std::cerr<<"LoadFileToString:: ERROR, unable to load file<"<<path<<">\n";
+        throw;
+    }
+
+    std::string str;
+    str.assign((std::istreambuf_iterator<char>(ifs) ),
+               (std::istreambuf_iterator<char>()));
+    return str;
+  }
+}
+
+
+static const std::string reg_json_default=
+#include "altel_reg_cmd_list_json.hh"
+;
 
 static  const std::string help_usage
 (R"(
 Usage:
--c json_file: path to json file
 -i ip_address: eg. 131.169.133.170 for alpide_0 \n\
 -h : print usage information, and then quit
 )"
@@ -28,7 +54,13 @@ static  const std::string help_usage_linenoise
 
 keyword: help, info, quit, sensor, firmware, set, get
 
-example: 
+example:
+  A) start (set firmware and sensosr to run state)
+   > start
+
+  B) stop  (set firmware and sensosr to stop-run state)
+   > stop
+
   1) get firmware regiester
    > firmware get FW_REG_NAME
 
@@ -52,15 +84,11 @@ example:
 
 
 int main(int argc, char **argv){
-  
   std::string c_opt;
   std::string i_opt;
   int c;
-  while ( (c = getopt(argc, argv, "c:i:h")) != -1) {
+  while ( (c = getopt(argc, argv, "i:h")) != -1) {
     switch (c) {
-    case 'c':
-      c_opt = optarg;
-      break;
     case 'i':
       i_opt = optarg;
       break;
@@ -83,20 +111,21 @@ int main(int argc, char **argv){
 
   ////////////////////////
   //test if all opts
-  if(c_opt.empty() || i_opt.empty()){
+  if(i_opt.empty()){
     fprintf(stderr, "\ninsufficient options.\n%s\n\n\n",help_usage.c_str());
     return 1;
   }
   ///////////////////////
   
-  std::string json_file_path = c_opt;
   std::string ip_address_str = i_opt;
   
   ///////////////////////
-  std::string file_context = FirmwarePortal::LoadFileToString(json_file_path);
-
-  FirmwarePortal fw(file_context, ip_address_str);
+  std::string file_context = reg_json_default;
+  std::cout<< file_context<<std::endl;
   
+  FirmwarePortal fw(file_context, ip_address_str);
+  FirmwarePortal *m_fw = &fw;
+
   const char* linenoise_history_path = "/tmp/.alpide_cmd_history";
   linenoiseHistoryLoad(linenoise_history_path);
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
@@ -129,6 +158,93 @@ int main(int argc, char **argv){
       fprintf(stdout, "%s", help_usage_linenoise.c_str());
       linenoiseHistoryAdd(result);
       free(result);
+      break;
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
+      printf("starting \n");
+      linenoiseHistoryAdd(result);
+      free(result);
+
+      // begin init
+      //  m_fw->SendFirmwareCommand("RESET");
+      m_fw->SetFirmwareRegister("TRIG_DELAY", 1); //25ns per dig (FrameDuration?)
+      m_fw->SetFirmwareRegister("GAP_INT_TRIG", 20);
+
+      //=========== init part ========================
+      // 3.8 Chip initialization
+      // GRST
+      m_fw->SetFirmwareRegister("FIRMWARE_MODE", 0);
+      m_fw->SetFirmwareRegister("ADDR_CHIP_ID", 0x10); //OB
+      m_fw->SendAlpideBroadcast("GRST"); // chip global reset
+      m_fw->SetAlpideRegister("CHIP_MODE", 0x3c); // configure mode
+      // DAC setup
+      m_fw->SetAlpideRegister("VRESETP", 0x75); //117
+      m_fw->SetAlpideRegister("VRESETD", 0x93); //147
+      m_fw->SetAlpideRegister("VCASP", 0x56);   //86
+      uint32_t vcasn = 57;
+      uint32_t ithr  = 51;
+      m_fw->SetAlpideRegister("VCASN", vcasn);   //57 Y50
+      m_fw->SetAlpideRegister("VPULSEH", 0xff); //255 
+      m_fw->SetAlpideRegister("VPULSEL", 0x0);  //0
+      m_fw->SetAlpideRegister("VCASN2",vcasn+12);  //62 Y63  VCASN+12
+      m_fw->SetAlpideRegister("VCLIP", 0x0);    //0
+      m_fw->SetAlpideRegister("VTEMP", 0x0);
+      m_fw->SetAlpideRegister("IAUX2", 0x0);
+      m_fw->SetAlpideRegister("IRESET", 0x32);  //50
+      m_fw->SetAlpideRegister("IDB", 0x40);     //64
+      m_fw->SetAlpideRegister("IBIAS", 0x40);   //64
+      m_fw->SetAlpideRegister("ITHR", ithr);   //51  empty 0x32; 0x12 data, not full.  0x33 default, threshold
+      // 3.8.1 Configuration of in-pixel logic
+      m_fw->SendAlpideBroadcast("PRST");  //pixel matrix reset
+      m_fw->SetPixelRegisterFullChip("MASK_EN", 0);
+      m_fw->SetPixelRegisterFullChip("PULSE_EN", 0);
+      m_fw->SendAlpideBroadcast("PRST");  //pixel matrix reset
+      // 3.8.2 Configuration and start-up of the Data Transmission Unit, PLL
+      m_fw->SetAlpideRegister("DTU_CONF", 0x008d); // default
+      m_fw->SetAlpideRegister("DTU_DAC",  0x0088); // default
+      m_fw->SetAlpideRegister("DTU_CONF", 0x0085); // clear pll disable bit
+      m_fw->SetAlpideRegister("DTU_CONF", 0x0185); // set pll reset bit
+      m_fw->SetAlpideRegister("DTU_CONF", 0x0085); // clear reset bit
+      // 3.8.3 Setting up of readout
+      // 3.8.3.1a (OB) Setting CMU and DMU Configuration Register
+      m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70); //Token, disable MCH, enable DDR, no previous OB
+      m_fw->SetAlpideRegister("TEST_CTRL", 0x400); //Disable Busy Line
+      // 3.8.3.2 Setting FROMU Configuration Registers and enabling readout mode
+      // FROMU Configuration Register 1,2
+      m_fw->SetAlpideRegister("FROMU_CONF_1", 0x00); //Disable external busy, no triger delay
+      m_fw->SetAlpideRegister("FROMU_CONF_2", 20); //STROBE duration, alice testbeam 100
+      // FROMU Pulsing Register 1,2
+      // m_fw->SetAlpideRegister("FROMU_PULSING_2", 0xffff); //yiliu: test pulse duration, max  
+      // Periphery Control Register (CHIP MODE)
+      // m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
+      // RORST 
+      // m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
+      //===========end of init part =====================
+
+      //user init
+      //
+      //
+
+      //
+      //end of user init
+      std::fprintf(stdout, " fw init  %s\n", m_fw->DeviceUrl().c_str());
+
+      m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
+      m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
+      m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
+      m_fw->SetFirmwareRegister("FIRMWARE_MODE", 1); //run ext trigger
+      std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
+
+      break;
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
+      printf("stopping\n");
+      linenoiseHistoryAdd(result);
+      free(result);
+      m_fw->SetFirmwareRegister("FIRMWARE_MODE", 0); //fw must be stopped before chip
+      m_fw->SetAlpideRegister("CHIP_MODE", 0x3c); // configure mode
+      std::fprintf(stdout, " fw stop  %s\n", m_fw->DeviceUrl().c_str());
+      m_fw->SendFirmwareCommand("RESET");
       break;
     }
 

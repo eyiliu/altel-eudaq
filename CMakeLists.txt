@@ -57,7 +57,7 @@ endif()
 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  set(CMAKE_BUILD_RPATH "\$ORIGIN/../lib:\$ORIGIN/../extern/lib")
+  set(CMAKE_BUILD_RPATH "@loader_path/../lib;@loader_path/../extern/lib")
   set(CMAKE_INSTALL_RPATH "@loader_path/../lib;@loader_path/../extern/lib")
 else()
   set(CMAKE_BUILD_RPATH "\$ORIGIN/../lib:\$ORIGIN/../extern/lib")
