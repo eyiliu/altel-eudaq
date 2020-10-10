@@ -43,8 +43,10 @@ static const std::string reg_json_default=
 static  const std::string help_usage
 (R"(
 Usage:
--i ip_address: eg. 131.169.133.170 for alpide_0 \n\
+-i ip_address: eg. 131.169.133.170 for alpide_0
 -h : print usage information, and then quit
+
+'help' command in interactive mode provides detail usage information
 )"
  );
 
@@ -52,14 +54,22 @@ Usage:
 static  const std::string help_usage_linenoise
 (R"(
 
-keyword: help, info, quit, sensor, firmware, set, get
-
+keyword: help, info, quit, sensor, firmware, set, get, init, start, stop, reset, regcmd
 example:
-  A) start (set firmware and sensosr to run state)
+  A) init  (set firmware and sensosr to ready-run state after power-cirlce or reset)
    > start
 
-  B) stop  (set firmware and sensosr to stop-run state)
+  B) start (set firmware and sensosr to running state from ready-run state)
+   > start
+
+  C) stop  (set firmware and sensosr to stop-run state)
    > stop
+
+  D) reset (reset firmware)
+   > reset
+
+  E) print regiesters and command list)
+   > info regcmd
 
   1) get firmware regiester
    > firmware get FW_REG_NAME
@@ -101,7 +111,7 @@ int main(int argc, char **argv){
       return 1;
     }
   }
-  
+
   if (optind < argc) {
     fprintf(stderr, "\ninvalid options: ");
     while (optind < argc)
@@ -116,13 +126,12 @@ int main(int argc, char **argv){
     return 1;
   }
   ///////////////////////
-  
+
   std::string ip_address_str = i_opt;
-  
+
   ///////////////////////
   std::string file_context = reg_json_default;
-  std::cout<< file_context<<std::endl;
-  
+
   FirmwarePortal fw(file_context, ip_address_str);
   FirmwarePortal *m_fw = &fw;
 
@@ -131,7 +140,7 @@ int main(int argc, char **argv){
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "info",
+                                     {"help", "info", "start", "stop", "init", "reset", "regcmd",
                                       "quit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
@@ -141,30 +150,29 @@ int main(int argc, char **argv){
                                      }
                                    }
                                  } );
-  
+
   const char* prompt = "\x1b[1;32malpide\x1b[0m> ";
   while (1) {
     char* result = linenoise(prompt);
     if (result == NULL) {
       break;
-    }    
+    }
     if ( std::regex_match(result, std::regex("\\s*(quit)\\s*")) ){
       printf("quiting \n");
       linenoiseHistoryAdd(result);
       free(result);
       break;
     }
-    else if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
-      fprintf(stdout, "%s", help_usage_linenoise.c_str());
-      linenoiseHistoryAdd(result);
-      free(result);
-      break;
-    }
-    else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
-      printf("starting \n");
-      linenoiseHistoryAdd(result);
-      free(result);
 
+    if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
+      fprintf(stdout, "%s", help_usage_linenoise.c_str());
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){
+      printf("reset \n");
+      m_fw->SendFirmwareCommand("RESET");
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(init)\\s*")) ){
+      printf("init \n");
       // begin init
       //  m_fw->SendFirmwareCommand("RESET");
       m_fw->SetFirmwareRegister("TRIG_DELAY", 1); //25ns per dig (FrameDuration?)
@@ -184,7 +192,7 @@ int main(int argc, char **argv){
       uint32_t vcasn = 57;
       uint32_t ithr  = 51;
       m_fw->SetAlpideRegister("VCASN", vcasn);   //57 Y50
-      m_fw->SetAlpideRegister("VPULSEH", 0xff); //255 
+      m_fw->SetAlpideRegister("VPULSEH", 0xff); //255
       m_fw->SetAlpideRegister("VPULSEL", 0x0);  //0
       m_fw->SetAlpideRegister("VCASN2",vcasn+12);  //62 Y63  VCASN+12
       m_fw->SetAlpideRegister("VCLIP", 0x0);    //0
@@ -214,10 +222,10 @@ int main(int argc, char **argv){
       m_fw->SetAlpideRegister("FROMU_CONF_1", 0x00); //Disable external busy, no triger delay
       m_fw->SetAlpideRegister("FROMU_CONF_2", 20); //STROBE duration, alice testbeam 100
       // FROMU Pulsing Register 1,2
-      // m_fw->SetAlpideRegister("FROMU_PULSING_2", 0xffff); //yiliu: test pulse duration, max  
+      // m_fw->SetAlpideRegister("FROMU_PULSING_2", 0xffff); //yiliu: test pulse duration, max
       // Periphery Control Register (CHIP MODE)
       // m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
-      // RORST 
+      // RORST
       // m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
       //===========end of init part =====================
 
@@ -228,26 +236,24 @@ int main(int argc, char **argv){
       //
       //end of user init
       std::fprintf(stdout, " fw init  %s\n", m_fw->DeviceUrl().c_str());
-
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
+      printf("starting \n");
       m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
       m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
       m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
       m_fw->SetFirmwareRegister("FIRMWARE_MODE", 1); //run ext trigger
       std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
-
-      break;
     }
     else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
       printf("stopping\n");
-      linenoiseHistoryAdd(result);
-      free(result);
       m_fw->SetFirmwareRegister("FIRMWARE_MODE", 0); //fw must be stopped before chip
       m_fw->SetAlpideRegister("CHIP_MODE", 0x3c); // configure mode
       std::fprintf(stdout, " fw stop  %s\n", m_fw->DeviceUrl().c_str());
-      m_fw->SendFirmwareCommand("RESET");
-      break;
     }
-
+    else if ( std::regex_match(result, std::regex("\\s*(info)\\s+(regcmd)\\s*"))){
+      std::cout<< file_context<<std::endl;
+    }
     else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
       std::cmatch mt;
       std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*"));
@@ -262,7 +268,6 @@ int main(int argc, char **argv){
       uint64_t value = fw.GetAlpideRegister(name);
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
     }
-    
     else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
       std::cmatch mt;
       std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*"));
