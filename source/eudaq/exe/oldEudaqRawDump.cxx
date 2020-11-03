@@ -45,10 +45,6 @@ quick examples:
   oldEudaqRawDump -file ~/testbeam/run002012_200227184925.raw -eventNumber 100
 )";
 
-void OverwriteBits(uint16_t &dst, uint16_t src, int pos, int len) {
-    uint16_t mask = (((uint16_t)1 << len) - 1) << pos;
-    dst = ( dst & ~mask )|( (src<<pos) & mask );
-}
 
 static sig_atomic_t g_done = 0;
 int main(int argc, char ** argv) {

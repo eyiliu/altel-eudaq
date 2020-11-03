@@ -25,12 +25,11 @@ template<typename T>
 
 static  const std::string help_usage=R"(
   Usage:
-  -help              help message
-  -verbose           verbose flag
-  -file       [rawfile]    path to input eudaq raw data file
-  -energy     [float]      energy of beam particle (not yet used)
-  -geometry   [jsonfile]   puth to input geometry file (not yet used)
-  -out        [jsonfile]   path to output json file
+  -help                          help message
+  -verbose                       verbose flag
+  -rawFile  [rawfile0 <rawfile1> <rawfile2> ... ]
+                                 paths to input eudaq raw data files (input)
+  -hitFile  [jsonfile]           path to output hit file (output)
 )";
 
 int main(int argc, char* argv[]) {
@@ -42,17 +41,12 @@ int main(int argc, char* argv[]) {
     {
      { "help",       no_argument,       &do_help,      1  },
      { "verbose",    no_argument,       &do_verbose,   1  },
-     { "file",       required_argument, NULL,          'f' },
-     { "energy",     required_argument, NULL,          's' },
-     { "geomerty",   required_argument, NULL,          'g' },
-     { "out",        required_argument, NULL,          'o' },
+     { "rawFile",    required_argument, NULL,          'f' },
+     { "hitFile",    required_argument, NULL,          'o' },
      { 0, 0, 0, 0 }};
 
-
-  std::string datafile_name;
-  std::string outputfile_name;
-  std::string geofile_name;
-  double energy = 5;
+  std::vector<std::string> rawFilePathCol;
+  std::string hitFilePath;
 
   int c;
   opterr = 1;
@@ -63,17 +57,21 @@ int main(int argc, char* argv[]) {
       std::fprintf(stdout, "%s\n", help_usage.c_str());
       exit(0);
       break;
-    case 'f':
-      datafile_name = optarg;
+    case 'f':{
+      optind--;
+      for( ;optind < argc && *argv[optind] != '-'; optind++){
+        // printf("optind %d\n", optind);
+        // for(int i = optind; i<argc; i++){
+        //   printf("%s ", argv[i]);
+        // }
+        // printf("\n", optind);
+        const char* fileStr = argv[optind];
+        rawFilePathCol.push_back(std::string(fileStr));
+      }
       break;
+    }
     case 'o':
-      outputfile_name = optarg;
-      break;
-    case 'g':
-      geofile_name = optarg;
-      break;
-    case 's':
-      energy = std::stod(optarg);
+      hitFilePath = optarg;
       break;
 
       /////generic part below///////////
@@ -98,15 +96,19 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  if(datafile_name.empty() || outputfile_name.empty()){
+  if(rawFilePathCol.empty() || hitFilePath.empty()){
     std::fprintf(stderr, "%s\n", help_usage.c_str());
     exit(0);
   }
 
-  eudaq::FileReaderUP reader;
-  reader = eudaq::Factory<eudaq::FileReader>::MakeUnique(eudaq::str2hash("native"), datafile_name);
+  std::fprintf(stdout, "%d input raw files:\n", rawFilePathCol.size());
+  for(auto &rawfilepath: rawFilePathCol){
+    std::fprintf(stdout, "  %s  ", rawfilepath.c_str());
+  }
+  std::fprintf(stdout, "\n");
 
-  std::FILE* fd = std::fopen(outputfile_name.c_str(), "wb");
+  eudaq::FileReaderUP reader;
+  std::FILE* fd = std::fopen(hitFilePath.c_str(), "wb");
   rapidjson::StringBuffer js_sb;
   rapidjson::Writer<rapidjson::StringBuffer> js_writer;
   js_writer.SetMaxDecimalPlaces(5);
@@ -115,13 +117,29 @@ int main(int argc, char* argv[]) {
 
   uint32_t event_count = 0;
 
-  while(1){
-    auto ev = reader->GetNextEvent();
-    if(!ev)
-      break;
-    event_count++;
+  uint32_t rawFileN=0;
+  uint32_t hitFile_eventN=0;
 
-    ev->Print(std::cout);
+  while(1){
+    if(!reader){
+      if(rawFileN<rawFilePathCol.size()){
+        std::fprintf(stdout, "processing raw file: %s\n", rawFilePathCol[rawFileN].c_str());
+        reader = eudaq::Factory<eudaq::FileReader>::MakeUnique(eudaq::str2hash("native"), rawFilePathCol[rawFileN]);
+        rawFileN++;
+      }
+      else{
+        std::fprintf(stdout, "processed %d raw files, quit\n", rawFileN);
+        break;
+      }
+    }
+    auto ev = reader->GetNextEvent();
+    if(!ev){
+      reader.reset();
+      continue; // goto for next raw file
+    }
+    event_count++;
+    if(do_verbose)
+      ev->Print(std::cout);
 
     eudaq::EventSPC ev_altel;
 
@@ -203,7 +221,8 @@ int main(int argc, char* argv[]) {
     js_writer.StartArray();
     for(auto& df: df_col){
       auto js_df = df.JSON(jsa);
-      PrintJson(js_df);
+      if(do_verbose)
+        PrintJson(js_df);
       js_df.Accept(js_writer);
       rapidjson::PutN(js_sb, '\n', 1);
     }
@@ -214,10 +233,13 @@ int main(int argc, char* argv[]) {
     auto n_ch = js_sb.GetSize();
     std::fwrite(reinterpret_cast<const char *>(p_ch), 1, n_ch, fd);
     is_first_write=false;
+
+    hitFile_eventN++;
   }
 
   std::fwrite(reinterpret_cast<const char *>("]\n"), 1, 2, fd);
   std::fclose(fd);
-
+ 
+  std::fprintf(stdout, "input events %d, output events %d\n", event_count,  hitFile_eventN);
   return 0;
 }
