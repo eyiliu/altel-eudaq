@@ -51,9 +51,8 @@ endif()
 # set(CMAKE_LINK_SEARCH_START_STATIC ON)
 # set(CMAKE_LINK_SEARCH_END_STATIC ON)
 
-# set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-# set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-
+set(CMAKE_EXE_LINKER_FLAGS    "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

@@ -1,9 +1,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
-
 #include <iostream>
-
 #include <signal.h>
 
 #include "AltelReader.hh"
@@ -32,12 +30,20 @@ static const std::string help_usage = R"(
 Usage:
   -help                        help message
   -verbose                     verbose flag
-  -ipAddress      <ip>         eg. 131.169.133.170 for alpide_0
+  -ipAddress      <ip>         eg. 192.168.10.16
 
   -rawPrint                    print data by hex format in terminal
   -rawFile        <path>       path of raw file to save
 
 examples:
+#1. save data and print
+./tcprx_dump -i 192.168.10.16 -rawPrint -rawFile test.dat
+
+#2. save data only
+./tcprx_dump -i 192.168.10.16 -rawFile test.dat
+
+#3. print only
+./tcprx_dump -i 192.168.10.16 -rawPrint
 )";
 
 static sig_atomic_t g_done = 0;
@@ -156,27 +162,79 @@ int main(int argc, char *argv[]) {
   }
 )";
 
+  std::FILE *fp = nullptr;
+  if(!rawFilePath.empty()){
+    std::filesystem::path filepath(rawFilePath);
+    std::filesystem::path path_dir_output = std::filesystem::absolute(filepath).parent_path();
+    std::filesystem::file_status st_dir_output =
+      std::filesystem::status(path_dir_output);
+    if (!std::filesystem::exists(st_dir_output)) {
+      std::fprintf(stdout, "Output folder does not exist: %s\n\n",
+                   path_dir_output.c_str());
+      std::filesystem::file_status st_parent =
+        std::filesystem::status(path_dir_output.parent_path());
+      if (std::filesystem::exists(st_parent) &&
+          std::filesystem::is_directory(st_parent)) {
+        if (std::filesystem::create_directory(path_dir_output)) {
+          std::fprintf(stdout, "Create output folder: %s\n\n", path_dir_output.c_str());
+        } else {
+          std::fprintf(stderr, "Unable to create folder: %s\n\n", path_dir_output.c_str());
+          throw;
+        }
+      } else {
+        std::fprintf(stderr, "Unable to create folder: %s\n\n", path_dir_output.c_str());
+        throw;
+      }
+    }
+
+    std::filesystem::file_status st_file = std::filesystem::status(filepath);
+    if (std::filesystem::exists(st_file)) {
+      std::fprintf(stderr, "File < %s > exists.\n\n", filepath.c_str());
+      throw;
+    }
+
+    fp = std::fopen(filepath.c_str(), "w");
+    if (!fp) {
+      std::fprintf(stderr, "File opening failed: %s \n\n", filepath.c_str());
+      throw;
+    }
+  }
+
   auto js_rd_conf = JsonUtils::createJsonDocument(rd_conf_str);
   js_rd_conf["options"]["ip"].SetString(ipAddressStr.data(), ipAddressStr.size(), js_rd_conf.GetAllocator());
-
   std::unique_ptr<AltelReader> rd(new AltelReader(JsonUtils::stringJsonValue(js_rd_conf)));
+  std::fprintf(stdout, " connecting to %s\n", rd->DeviceUrl().c_str());
+  if(!rd->Open()){
+      std::fprintf(stdout, " connection fail\n");
+      throw;
+  }
+  std::fprintf(stdout, " connected\n");
 
-  rd->Open();
-  std::fprintf(stdout, " rd start  %s\n", rd->DeviceUrl().c_str());
 
   size_t dataFrameN = 0;
   while(!g_done){
     auto df = rd->Read(std::chrono::seconds(1));
     if(!df){
       std::fprintf(stdout, "Data reveving timeout\n");
+      std::fprintf(stdout, "!!!!!you might need to start alpide with rbcp tool (rbcp_main) \n");
+      std::fprintf(stdout, "!!!!!you might need to trigger alpide \n");
       continue;
     }
     if(do_rawPrint){
       std::fprintf(stdout, "\nDataFrame #%d,  TLU #%d\n", dataFrameN, df->GetCounter());
-      std::fprintf(stdout, "RawData_TCP_RX: %s\n", StringToHexString(df->m_raw));
+      std::fprintf(stdout, "RawData_TCP_RX:\n%s\n", StringToHexString(df->m_raw));
+    }
+
+    if(fp){
+      std::fwrite(df->m_raw.data(), 1, df->m_raw.size(), fp);
+      std::fflush(fp);
     }
     dataFrameN ++;
   }
   rd->Close();
-
+  if(fp){
+    std::fflush(fp);
+    std::fclose(fp);
+  }
+  return 0;
 }

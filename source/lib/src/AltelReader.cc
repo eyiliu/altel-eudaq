@@ -102,7 +102,7 @@ const std::string& AltelReader::DeviceUrl(){
   return m_tcp_ip;
 }
 
-void AltelReader::Open(){
+bool AltelReader::Open(){
   if(m_flag_file){
     // std::string time_str= JadeUtils::GetNowStr("%y%m%d%H%M%S");
 #ifdef _WIN32
@@ -110,6 +110,8 @@ void AltelReader::Open(){
 #else
     m_fd = open(m_file_path.c_str(), O_RDONLY);
 #endif
+    if(!m_fd)
+      return false;
   }
   else{
     m_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -121,9 +123,11 @@ void AltelReader::Open(){
       //when connect fails, go to follow lines
       if(errno != EINPROGRESS){
         std::fprintf(stderr, "ERROR<%s@%s>: unable to start TCP connection, error code %i \n", __func__, m_tcp_ip.c_str(), errno);
+        return false;
       }
       if(errno == 29){
         std::fprintf(stderr, "ERROR<%s@%s>: TCP open timeout \n", __func__, m_tcp_ip.c_str());
+        return false;
       }
       fd_set fds;
       FD_ZERO(&fds);
@@ -134,9 +138,11 @@ void AltelReader::Open(){
       int rc = select(m_fd+1, &fds, NULL, NULL, &tv_timeout);
       if(rc<=0){
         std::fprintf(stderr,"ERROR<%s@%s>: socket select returns error code %i\n", __func__, m_tcp_ip.c_str(),  rc);
+        return false;
       }
     }
   }
+  return true;
 }
 
 void AltelReader::Close(){

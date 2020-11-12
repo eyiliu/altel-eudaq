@@ -36,7 +36,7 @@ target_include_directories(tcprx_dump
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   )
-target_link_libraries(tcprx_dump PRIVATE altel-rbcp mycommon)
+target_link_libraries(tcprx_dump PRIVATE altel-rbcp mycommon stdc++fs)
 
 
 install(TARGETS rbcp_main tcprx_dump
