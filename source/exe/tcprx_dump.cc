@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
     }
     if(do_rawPrint){
       std::fprintf(stdout, "\nDataFrame #%d,  TLU #%d\n", dataFrameN, df->GetCounter());
-      std::fprintf(stdout, "RawData_TCP_RX:\n%s\n", StringToHexString(df->m_raw));
+      std::fprintf(stdout, "RawData_TCP_RX:\n%s\n", StringToHexString(df->m_raw).c_str());
     }
 
     if(fp){
