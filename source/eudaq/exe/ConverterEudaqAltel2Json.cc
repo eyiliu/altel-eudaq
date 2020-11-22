@@ -172,7 +172,7 @@ int main(int argc, char* argv[]) {
     std::vector<altel::DataFrame> df_col;
     df_col.reserve(block_n_list.size());
     for(const auto& blockNum: block_n_list){
-      auto rawblock = ev->GetBlock(blockNum);
+      auto rawblock = ev_altelraw->GetBlock(blockNum);
       uint32_t* p_block = reinterpret_cast<uint32_t*>(rawblock.data());
       uint32_t layerID = *p_block;
 
