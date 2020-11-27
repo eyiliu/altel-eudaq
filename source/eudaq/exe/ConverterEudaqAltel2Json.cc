@@ -8,10 +8,13 @@
 #include <cstdlib>
 #include <csignal>
 
-#include "DataFrame.hh"
-
 #include "eudaq/FileReader.hh"
 #include "eudaq/RawEvent.hh"
+
+#include "TelEvent.hpp"
+#include "FEI4Helper.hh"
+
+#include "myrapidjson.h"
 
 template<typename T>
   static void PrintJson(const T& o){
@@ -109,17 +112,12 @@ int main(int argc, char* argv[]) {
 
   eudaq::FileReaderUP reader;
   std::FILE* fd = std::fopen(hitFilePath.c_str(), "wb");
-  rapidjson::StringBuffer js_sb;
-  rapidjson::Writer<rapidjson::StringBuffer> js_writer;
-  js_writer.SetMaxDecimalPlaces(5);
-  bool is_first_write = true;
-  std::fwrite(reinterpret_cast<const char *>("[\n"), 1, 2, fd);
 
   uint32_t event_count = 0;
-
   uint32_t rawFileN=0;
   uint32_t hitFile_eventN=0;
 
+  bool isFirstEvent = true;
   while(1){
     if(!reader){
       if(rawFileN<rawFilePathCol.size()){
@@ -138,10 +136,13 @@ int main(int argc, char* argv[]) {
       continue; // goto for next raw file
     }
     event_count++;
-    if(do_verbose)
-      ev->Print(std::cout);
 
     eudaq::EventSPC ev_altel;
+    eudaq::EventSPC ev_fei4;
+
+    uint32_t eventN = ev->GetEventN();
+    uint32_t triggerN = ev->GetTriggerN();
+    altel::TelEvent telev(0, eventN, 0, triggerN);
 
     if(ev->IsFlagPacket()){
       auto subev_col = ev->GetSubEvents();
@@ -149,15 +150,33 @@ int main(int argc, char* argv[]) {
         if(subev->GetDescription() == "AltelRaw"){
           ev_altel = subev;
         }
+        if(subev->GetDescription() == "USBPIXI4"){
+          ev_fei4 = subev;
+        }
       }
       subev_col.clear();
     }
     else if(ev->GetDescription() == "AltelRaw"){
       ev_altel = ev;
     }
-
     if(!ev_altel){
       continue;
+    }
+
+    if(ev_fei4){
+      std::vector<std::pair<uint16_t, uint16_t>> uvs = FEI4Helper::GetMeasRawUVs(ev_fei4);
+      std::vector<altel::TelMeasRaw> feiMeasRaws;
+      for(auto & [uraw, vraw] : uvs){
+        feiMeasRaws.emplace_back(uraw, vraw, 101, triggerN); //fei4 detN=101
+      }
+      auto feiMeasHits = altel::TelMeasHit::clustering_UVDCus(feiMeasRaws,
+                                                              FEI4Helper::pitchU,
+                                                              FEI4Helper::pitchV,
+                                                              -FEI4Helper::pitchU*(FEI4Helper::numPixelU-1)*0.5,
+                                                              -FEI4Helper::pitchV*(FEI4Helper::numPixelV-1)*0.5);
+
+      telev.measRaws().insert(telev.measRaws().end(), feiMeasRaws.begin(), feiMeasRaws.end());
+      telev.measHits().insert(telev.measHits().end(), feiMeasHits.begin(), feiMeasHits.end());
     }
 
     auto ev_altelraw = std::dynamic_pointer_cast<const eudaq::RawEvent>(ev_altel);
@@ -166,26 +185,16 @@ int main(int argc, char* argv[]) {
     if(!nblocks)
       throw;
 
-    uint32_t eventN = ev_altelraw->GetEventN();
-    uint32_t triggerN = ev_altelraw->GetTriggerN();
-
-    std::vector<altel::DataFrame> df_col;
-    df_col.reserve(block_n_list.size());
     for(const auto& blockNum: block_n_list){
       auto rawblock = ev_altelraw->GetBlock(blockNum);
       uint32_t* p_block = reinterpret_cast<uint32_t*>(rawblock.data());
       uint32_t layerID = *p_block;
 
-      altel::DataFrame df;
-      df.m_counter=eventN;
-      df.m_trigger=triggerN;
-      df.m_level_decode = 5;
-      df.m_extension = layerID;
-
       p_block++;
       uint32_t cluster_size =  *p_block;
       p_block++;
 
+      std::vector<altel::TelMeasRaw> alpideMeasRaws;
       for(size_t i = 0; i < cluster_size; i++){
         float cluster_x_mm = *(reinterpret_cast<float*>(p_block));
         p_block++;
@@ -193,53 +202,69 @@ int main(int argc, char* argv[]) {
         p_block++;
         uint32_t pixel_size =  *p_block;
         p_block++;
-        std::vector<altel::PixelHit> pixelhits;
-        pixelhits.reserve(pixel_size);
+
         for(size_t j = 0; j < pixel_size; j++){
           uint32_t pixelXY =  *p_block;
           p_block++;
           uint16_t pixelX = static_cast<uint16_t>(pixelXY);
           uint16_t pixelY = static_cast<uint16_t>(pixelXY>>16);
-          pixelhits.emplace_back(pixelX,pixelY,layerID);
+          alpideMeasRaws.emplace_back(pixelX, pixelY, layerID, triggerN);
         }
-        altel::ClusterHit clusterhit(std::move(pixelhits));
-        clusterhit.buildClusterCenter();
-        df.m_clusters.push_back(std::move(clusterhit));
       }
-      df_col.push_back(std::move(df));
+      auto alpideMeasHits = altel::TelMeasHit::clustering_UVDCus(alpideMeasRaws,
+                                                                 0.02924,
+                                                                 0.02688,
+                                                                 -0.02924*(1024-1)*0.5,
+                                                                 -0.02688*(512-1)*0.5);
+
+      telev.measRaws().insert(telev.measRaws().end(), alpideMeasRaws.begin(), alpideMeasRaws.end());
+      telev.measHits().insert(telev.measHits().end(), alpideMeasHits.begin(), alpideMeasHits.end());
     }
 
-    js_sb.Clear();
-    if(!is_first_write){
-      std::fwrite(reinterpret_cast<const char *>(",\n"), 1, 2, fd);
+    if(!isFirstEvent){
+      std::fprintf(fd, ",\n");
     }
-    js_writer.Reset(js_sb);
-    js_writer.StartObject();
-
-    rapidjson::PutN(js_sb, '\n', 1);
-    js_writer.String("layers");
-    js_writer.StartArray();
-    for(auto& df: df_col){
-      auto js_df = df.JSON(jsa);
-      if(do_verbose)
-        PrintJson(js_df);
-      js_df.Accept(js_writer);
-      rapidjson::PutN(js_sb, '\n', 1);
+    else{
+      isFirstEvent=false;
     }
-    js_writer.EndArray();
-    js_writer.EndObject();
-    rapidjson::PutN(js_sb, '\n', 1);
-    auto p_ch = js_sb.GetString();
-    auto n_ch = js_sb.GetSize();
-    std::fwrite(reinterpret_cast<const char *>(p_ch), 1, n_ch, fd);
-    is_first_write=false;
+    // std::fprintf(stdout, "\nevent #%d trigger #%d: ", telev.eveN(), telev.clkN());
+    std::fprintf(fd, "{\"layers\":[\n");
+    uint16_t detN_last = -1;
+    for(auto &aMeasHit : telev.measHits()){
+      uint16_t detN = aMeasHit->detN();
+      bool isFirstHit = false;
 
+      if(detN!= detN_last){
+        if(detN_last!= uint16_t(-1) ){
+          std::fprintf(fd, " ]},\n");
+        }
+        detN_last = detN;
+        std::fprintf(fd," {\"det\":\"%s\",\"ver\":5,\"tri\":%d,\"cnt\":%d,\"ext\":%d,\"hit\":[",
+                     (detN==101)?"fei4":"alpide", telev.clkN(), telev.eveN(), detN);
+        isFirstHit = true;
+      }
+      if(!isFirstHit){
+        std::fprintf(fd, ",");
+      }
+      std::fprintf(fd, "{\"pos\":[%f,%f,%d],", aMeasHit->u(), aMeasHit->v(), aMeasHit->detN());
+      std::fprintf(fd, "\"pix\":[");
+      bool isFirstPixel = true;
+      for(auto &aMeasRaw: aMeasHit->measRaws()){
+        if(!isFirstPixel){
+          std::fprintf(fd, ",");
+        }
+        else{
+          isFirstPixel = false;
+        }
+        std::fprintf(fd, "[%d,%d,%d]", aMeasRaw.u(), aMeasRaw.v(), aMeasRaw.detN());
+      }
+      std::fprintf(fd, "]}");
+    }
+    std::fprintf(fd, " ]}\n");
+    std::fprintf(fd, "]}");
     hitFile_eventN++;
   }
-
-  std::fwrite(reinterpret_cast<const char *>("]\n"), 1, 2, fd);
   std::fclose(fd);
- 
   std::fprintf(stdout, "input events %d, output events %d\n", event_count,  hitFile_eventN);
   return 0;
 }

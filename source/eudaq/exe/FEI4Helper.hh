@@ -25,7 +25,8 @@ typedef unsigned int uint;
 
 template <uint dh_lv1id_msk, uint dh_bcid_msk> class ATLASFEI4Interpreter {
 public:
-  //-----------------
+
+//-----------------
   // Data Header (dh)
   //-----------------
   static const uint dh_wrd = 0x00E90000;
@@ -129,15 +130,26 @@ public:
 }; // class ATLASFEI4Interpreter
 
 
+class UsbpixrefRawEventHelper;
+using FEI4Helper = UsbpixrefRawEventHelper;
+
 class UsbpixrefRawEventHelper{
 public:
   using  fei4a_intp = ATLASFEI4Interpreter<0x00007F00, 0x000000FF>;
 
-  static bool Print(eudaq::EventSPC d1) {
+  static constexpr uint16_t numPixelU = 80;
+  static constexpr uint16_t numPixelV = 336;
+  static constexpr double pitchU = 0.25;
+  static constexpr double pitchV = 0.05;
+  static constexpr double offsetToCenterU = -pitchU*(numPixelU-1)*0.5;
+  static constexpr double offsetToCenterV = -pitchV*(numPixelV-1)*0.5;
+
+  static std::vector<std::pair<uint16_t, uint16_t>> GetMeasRawUVs(eudaq::EventSPC d1) {
+    std::vector<std::pair<uint16_t, uint16_t>> uvs;
     auto ev_raw = std::dynamic_pointer_cast<const eudaq::RawEvent>(d1);
     auto block_n_list = ev_raw->GetBlockNumList();
     if(block_n_list.empty()){
-      return false;
+      return uvs;
     }
     if(block_n_list.size()>1){
       throw;
@@ -145,16 +157,17 @@ public:
 
     auto data = ev_raw->GetBlock(block_n_list[0]);
     if(!isEventValid(data)){
-        return false;
+      return uvs;
     }
 
-    uint32_t ToT = 0;
-    uint32_t Col = 0;
-    uint32_t Row = 0;
-    uint32_t lvl1 = 0;
+    uint16_t ToT = 0;
+    uint16_t Col = 0;
+    uint16_t Row = 0;
+    uint16_t lvl1 = 0;
 
-    std::fprintf(stdout, "\n\n");
+    // std::fprintf(stdout, "\n\n");
     //Get Events
+
     for(size_t i=0; i < data.size()-8; i += 4){
         uint32_t Word = getWord(data, i);
         if(fei4a_intp::is_dh(Word)){
@@ -163,18 +176,27 @@ public:
         else{
           //First Hit
           if(getHitData(Word, false, Col, Row, ToT)){
-            std::fprintf(stdout, "[%d, %d, %d]", Col, Row, lvl1-1);
-            std::fprintf(stdout, "[%f, %f]", (Col-40.)*0.250+15., (Row-168.)*0.050+7.);
+            std::pair<uint16_t, uint16_t> uv(Col, Row);
+            // std::fprintf(stdout, "[%f, %f]",
+            //              Col*FEI4Helper::pitchU+FEI4Helper::offsetToCenterU,
+            //              Row*FEI4Helper::pitchV+FEI4Helper::offsetToCenterV);
+            if(std::find(uvs.begin(), uvs.end(), uv) == uvs.end()){
+              uvs.push_back(uv);
+            }
           }
           //Second Hit
           if(getHitData(Word, true, Col, Row, ToT)){
-            std::fprintf(stdout, "[%d, %d, %d]", Col, Row, lvl1-1);
-            std::fprintf(stdout, "[%f, %f]", (Col-40.)*0.250+15., (Row-168.)*0.050+7.);
+            std::pair<uint16_t, uint16_t> uv(Col, Row);
+            // std::fprintf(stdout, "[%f, %f]",
+            //              Col*FEI4Helper::pitchU+FEI4Helper::offsetToCenterU,
+            //              Row*FEI4Helper::pitchV+FEI4Helper::offsetToCenterV);
+            if(std::find(uvs.begin(), uvs.end(), uv) == uvs.end()){
+              uvs.push_back(uv);
+            }
           }
         }
     }
-    std::fprintf(stdout, "\n");
-    return true;
+    return uvs;
   }
 
   static bool isEventValid(const std::vector<uint8_t> & data){
@@ -196,7 +218,7 @@ public:
 
 
   static bool getHitData(uint32_t &Word, bool second_hit,
-                         uint32_t &Col, uint32_t &Row, uint32_t &ToT){
+                         uint16_t &Col, uint16_t &Row, uint16_t &ToT){
     //No data record
     if( !fei4a_intp::is_dr(Word)){
       return false;

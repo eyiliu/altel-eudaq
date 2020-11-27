@@ -7,6 +7,7 @@ target_link_libraries(ConverterEudaqAltel2Json PRIVATE
   mycommon
   )
 
+
 add_executable(ConverterEudaqJade2Json ConverterEudaqJade2Json.cc)
 list(APPEND EXE_TARGET_LIST ConverterEudaqJade2Json)
 target_link_libraries(ConverterEudaqJade2Json PRIVATE
