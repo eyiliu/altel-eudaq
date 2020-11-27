@@ -1,7 +1,5 @@
 #pragma once
 
-#include "eudaq/RawEvent.hh"
-
 #include <cstdlib>
 #include <cstring>
 #include <exception>
@@ -10,7 +8,6 @@
 // 80 columns on 250μm pitch
 // 336 rows on 50μm pitch
 
-typedef unsigned int uint;
 
 /*FEI4A
  *  DATA_HEADER_LV1ID_MASK	0x00007F00
@@ -25,6 +22,11 @@ typedef unsigned int uint;
 
 template <uint dh_lv1id_msk, uint dh_bcid_msk> class ATLASFEI4Interpreter {
 public:
+
+  using uint =  unsigned int;
+  using uint8_t = std::uint8_t;
+  using uint16_t = std::uint16_t;
+  using uint32_t = std::uint32_t;
 
 //-----------------
   // Data Header (dh)
@@ -144,18 +146,8 @@ public:
   static constexpr double offsetToCenterU = -pitchU*(numPixelU-1)*0.5;
   static constexpr double offsetToCenterV = -pitchV*(numPixelV-1)*0.5;
 
-  static std::vector<std::pair<uint16_t, uint16_t>> GetMeasRawUVs(eudaq::EventSPC d1) {
+  static std::vector<std::pair<uint16_t, uint16_t>> GetMeasRawUVs(const std::vector<uint8_t> &data){
     std::vector<std::pair<uint16_t, uint16_t>> uvs;
-    auto ev_raw = std::dynamic_pointer_cast<const eudaq::RawEvent>(d1);
-    auto block_n_list = ev_raw->GetBlockNumList();
-    if(block_n_list.empty()){
-      return uvs;
-    }
-    if(block_n_list.size()>1){
-      throw;
-    }
-
-    auto data = ev_raw->GetBlock(block_n_list[0]);
     if(!isEventValid(data)){
       return uvs;
     }
@@ -165,7 +157,6 @@ public:
     uint16_t Row = 0;
     uint16_t lvl1 = 0;
 
-    // std::fprintf(stdout, "\n\n");
     //Get Events
 
     for(size_t i=0; i < data.size()-8; i += 4){
@@ -177,9 +168,6 @@ public:
           //First Hit
           if(getHitData(Word, false, Col, Row, ToT)){
             std::pair<uint16_t, uint16_t> uv(Col, Row);
-            // std::fprintf(stdout, "[%f, %f]",
-            //              Col*FEI4Helper::pitchU+FEI4Helper::offsetToCenterU,
-            //              Row*FEI4Helper::pitchV+FEI4Helper::offsetToCenterV);
             if(std::find(uvs.begin(), uvs.end(), uv) == uvs.end()){
               uvs.push_back(uv);
             }
@@ -187,9 +175,6 @@ public:
           //Second Hit
           if(getHitData(Word, true, Col, Row, ToT)){
             std::pair<uint16_t, uint16_t> uv(Col, Row);
-            // std::fprintf(stdout, "[%f, %f]",
-            //              Col*FEI4Helper::pitchU+FEI4Helper::offsetToCenterU,
-            //              Row*FEI4Helper::pitchV+FEI4Helper::offsetToCenterV);
             if(std::find(uvs.begin(), uvs.end(), uv) == uvs.end()){
               uvs.push_back(uv);
             }

@@ -164,19 +164,28 @@ int main(int argc, char* argv[]) {
     }
 
     if(ev_fei4){
-      std::vector<std::pair<uint16_t, uint16_t>> uvs = FEI4Helper::GetMeasRawUVs(ev_fei4);
-      std::vector<altel::TelMeasRaw> feiMeasRaws;
-      for(auto & [uraw, vraw] : uvs){
-        feiMeasRaws.emplace_back(uraw, vraw, 101, triggerN); //fei4 detN=101
+      auto ev_raw = std::dynamic_pointer_cast<const eudaq::RawEvent>(ev_fei4);
+      auto block_n_list = ev_raw->GetBlockNumList();
+      if(block_n_list.size()>1){
+        throw;
       }
-      auto feiMeasHits = altel::TelMeasHit::clustering_UVDCus(feiMeasRaws,
-                                                              FEI4Helper::pitchU,
-                                                              FEI4Helper::pitchV,
-                                                              -FEI4Helper::pitchU*(FEI4Helper::numPixelU-1)*0.5,
-                                                              -FEI4Helper::pitchV*(FEI4Helper::numPixelV-1)*0.5);
+      if(!block_n_list.empty()){
+        auto data = ev_raw->GetBlock(block_n_list[0]);
 
-      telev.measRaws().insert(telev.measRaws().end(), feiMeasRaws.begin(), feiMeasRaws.end());
-      telev.measHits().insert(telev.measHits().end(), feiMeasHits.begin(), feiMeasHits.end());
+        std::vector<std::pair<uint16_t, uint16_t>> uvs = FEI4Helper::GetMeasRawUVs(data);
+        std::vector<altel::TelMeasRaw> feiMeasRaws;
+        for(auto & [uraw, vraw] : uvs){
+          feiMeasRaws.emplace_back(uraw, vraw, 101, triggerN); //fei4 detN=101
+        }
+        auto feiMeasHits = altel::TelMeasHit::clustering_UVDCus(feiMeasRaws,
+                                                                FEI4Helper::pitchU,
+                                                                FEI4Helper::pitchV,
+                                                                -FEI4Helper::pitchU*(FEI4Helper::numPixelU-1)*0.5,
+                                                                -FEI4Helper::pitchV*(FEI4Helper::numPixelV-1)*0.5);
+
+        telev.measRaws().insert(telev.measRaws().end(), feiMeasRaws.begin(), feiMeasRaws.end());
+        telev.measHits().insert(telev.measHits().end(), feiMeasHits.begin(), feiMeasHits.end());
+      }
     }
 
     auto ev_altelraw = std::dynamic_pointer_cast<const eudaq::RawEvent>(ev_altel);
