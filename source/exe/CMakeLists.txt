@@ -20,14 +20,13 @@ endfunction()
 create_cpp_raw_string(${CMAKE_CURRENT_BINARY_DIR}/include/altel_reg_cmd_list_json.hh
   ${PROJECT_SOURCE_DIR}/source/lib/misc/altel_reg_cmd_list.json)
 
+add_executable(regctrl_main regctrl_main.cc)
 
-add_executable(rbcp_main rbcp_main.cc)
-
-target_include_directories(rbcp_main
+target_include_directories(regctrl_main
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   )
-target_link_libraries(rbcp_main PRIVATE altel-rbcp mycommon)
+target_link_libraries(regctrl_main PRIVATE altel-rbcp mycommon)
 
 
 add_executable(tcprx_dump tcprx_dump.cc)
@@ -39,7 +38,7 @@ target_include_directories(tcprx_dump
 target_link_libraries(tcprx_dump PRIVATE altel-rbcp mycommon stdc++fs)
 
 
-install(TARGETS rbcp_main tcprx_dump
+install(TARGETS regctrl_main tcprx_dump
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION lib      COMPONENT runtime

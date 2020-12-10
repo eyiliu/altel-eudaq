@@ -1,8 +1,7 @@
-add_subdirectory(rbcp)
 
 aux_source_directory(src LIB_SRC)
 add_library(altel-rbcp STATIC ${LIB_SRC} )
-target_link_libraries(altel-rbcp PUBLIC mycommon PRIVATE rbcp)
+target_link_libraries(altel-rbcp PUBLIC mycommon)
 
 # TODO: MAKE FUN
 set(ORI_FILE ${CMAKE_CURRENT_LIST_DIR}/misc/altel_reg_cmd_list.json)
