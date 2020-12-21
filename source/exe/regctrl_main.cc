@@ -43,7 +43,6 @@ static const std::string reg_json_default=
 static  const std::string help_usage
 (R"(
 Usage:
--i ip_address: eg. 131.169.133.170 for alpide_0
 -h : print usage information, and then quit
 
 'help' command in interactive mode provides detail usage information
@@ -86,8 +85,6 @@ example:
   5) exit/quit command line
    > quit
 
-  6) get ip address (base) from firmware regiesters
-   > info
 
 )"
  );
@@ -95,13 +92,9 @@ example:
 
 int main(int argc, char **argv){
   std::string c_opt;
-  std::string i_opt;
   int c;
-  while ( (c = getopt(argc, argv, "i:h")) != -1) {
+  while ( (c = getopt(argc, argv, "h")) != -1) {
     switch (c) {
-    case 'i':
-      i_opt = optarg;
-      break;
     case 'h':
       fprintf(stdout, "%s", help_usage.c_str());
       return 0;
@@ -112,27 +105,10 @@ int main(int argc, char **argv){
     }
   }
 
-  if (optind < argc) {
-    fprintf(stderr, "\ninvalid options: ");
-    while (optind < argc)
-      fprintf(stderr, "%s\n", argv[optind++]);;
-    return 1;
-  }
-
-  ////////////////////////
-  //test if all opts
-  if(i_opt.empty()){
-    fprintf(stderr, "\ninsufficient options.\n%s\n\n\n",help_usage.c_str());
-    return 1;
-  }
-  ///////////////////////
-
-  std::string ip_address_str = i_opt;
-
   ///////////////////////
   std::string file_context = reg_json_default;
 
-  FirmwarePortal fw(file_context, ip_address_str);
+  FirmwarePortal fw(file_context, "");
   FirmwarePortal *m_fw = &fw;
 
   const char* linenoise_history_path = "/tmp/.alpide_cmd_history";
@@ -266,7 +242,7 @@ int main(int argc, char **argv){
       std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(get)\\s+(\\w+)\\s*"));
       std::string name = mt[3].str();
       uint64_t value = fw.GetAlpideRegister(name);
-      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+      fprintf(stderr, "%s = %llu, %#llx\n", name.c_str(), value, value);
     }
     else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
       std::cmatch mt;
@@ -280,14 +256,7 @@ int main(int argc, char **argv){
       std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(get)\\s+(\\w+)\\s*"));
       std::string name = mt[3].str();
       uint64_t value = fw.GetFirmwareRegister(name);
-      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
-    }
-    else if (!strncmp(result, "info", 5)){
-      uint32_t ip0 = fw.GetFirmwareRegister("IP0");
-      uint32_t ip1 = fw.GetFirmwareRegister("IP1");
-      uint32_t ip2 = fw.GetFirmwareRegister("IP2");
-      uint32_t ip3 = fw.GetFirmwareRegister("IP3");
-      std::cout<<"\n\ncurrent ip  " <<ip0<<":"<<ip1<<":"<<ip2<<":"<<ip3<<"\n\n"<<std::endl;
+      fprintf(stderr, "%s = %llu, %#llx\n", name.c_str(), value, value);
     }
     linenoiseHistoryAdd(result);
     free(result);

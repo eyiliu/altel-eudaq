@@ -832,7 +832,8 @@
 	}
     ],
 
-    "FIRMWARE_CMD_LIST_V2":[
+    
+    "FIRMWARE_CMD_LIST_V3":[
 	{
 	    "name":"RESET",
 	    "value":"0xff",
@@ -860,13 +861,21 @@
 	    "bytes":1,
 	    "words":1,
 	    "description":"Read data from ALPIDE register at ALPIDE Register Address and store in Data Read"
-	}	
+	},
+	{
+	    "name":"STOP_AXIS",
+	    "value":"0xaa",
+	    "bytes":1,
+	    "words":1,
+	    "description":"Stop writing data to AXIS FIFO"
+	}
+
     ],
-    
-    "FIRMWARE_REG_LIST_V2":[
+
+    "FIRMWARE_REG_LIST_V3":[
 	{
 	    "name":"FIRMWARE_CMD",
-	    "address":"0x0",
+	    "address":"0x43c00044",
 	    "bytes":1,
 	    "words":1,
 	    "read":false,
@@ -876,7 +885,7 @@
 	},
 	{
 	    "name":"ADDR_CHIP_ID",
-	    "address":"0x10000001",
+	    "address":"0x43c00004",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -887,29 +896,19 @@
 	{
 	    "name":"ADDR_CHIP_REG",
 	    "address":[
-		    "ADDR_CHIP_REG_H",
-		    "ADDR_CHIP_REG_L"
+		"ADDR_CHIP_REG_L",
+		"ADDR_CHIP_REG_H"
 	    ],
 	    "bytes":2,
 	    "words":2,
-	    "endian":"BE",
+	    "endian":"LE",
 	    "read":true,
 	    "write":true,
-	    "description":"ALPIDE Register Address to Read or Write"
-	},
-	{
-	    "name":"ADDR_CHIP_REG_H",
-	    "address":"0x10000002",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x00",
-	    "description":"ALPIDE Register Address to Read or Write, [15:8]"
+	    "description":"ALPIDE Register Address to Read or Write, 0x43c00008"
 	},
 	{
 	    "name":"ADDR_CHIP_REG_L",
-	    "address":"0x10000003",
+	    "address":"0x43c00008",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -918,31 +917,31 @@
 	    "description":"ALPIDE Register Address to Read or Write, [7:0]"
 	},
 	{
-	    "name":"DATA_WRITE",
-	    "address":[
-		    "DATA_WRITE_H",
-		    "DATA_WRITE_L"
-	    ],
-	    "bytes":2,
-	    "words":2,
-	    "endian":"BE",
-	    "read":true,
-	    "write":true,
-	    "description":"Data Wrote to ALPIDE Register"
-	},
-	{
-	    "name":"DATA_WRITE_H",
-	    "address":"0x10000004",
+	    "name":"ADDR_CHIP_REG_H",
+	    "address":"0x43c00009",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":true,
 	    "reset":"0x00",
-	    "description":"Data Wrote to ALPIDE Register [15:8] "
+	    "description":"ALPIDE Register Address to Read or Write, [15:8]"
+	},
+	{
+	    "name":"DATA_WRITE",
+	    "address":[
+		    "DATA_WRITE_L",
+		    "DATA_WRITE_H"
+	    ],
+	    "bytes":2,
+	    "words":2,
+	    "endian":"LE",
+	    "read":true,
+	    "write":true,
+	    "description":"Data Wrote to ALPIDE Register 0x43c00010"
 	},
 	{
 	    "name":"DATA_WRITE_L",
-	    "address":"0x10000005",
+	    "address":" 0x43c00010",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -951,8 +950,18 @@
 	    "description":"Data Wrote to ALPIDE Register [7:0] "
 	},
 	{
+	    "name":"DATA_WRITE_H",
+	    "address":" 0x43c00011",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"Data Wrote to ALPIDE Register [15:8] "
+	},
+	{
 	    "name":"BROADCAST_OPCODE",
-	    "address":"0x10000006",
+	    "address":"0x43c00018",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -963,29 +972,19 @@
 	{
 	    "name":"TRIG_DELAY",
 	    "address":[
-		    "TRIG_DELAY_H",
-		    "TRIG_DELAY_L"
+		"TRIG_DELAY_L",
+		"TRIG_DELAY_H"
 	    ],
 	    "bytes":2,
 	    "words":2,
-	    "endian":"BE",
+	    "endian":"LE",
 	    "read":true,
 	    "write":true,
-	    "description":"Controls the delay from external trigger to DAQ sending trigger to ALPIDE. Value n gives a delay of n clock cycles (minimum 0 and maximum 65535 cycles i.e. from 0 to ~1638 us assuming a clock period of 25 ns)"
-	},
-	{
-	    "name":"TRIG_DELAY_H",
-	    "address":"0x10000007",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x00",
-	    "description":"Trigger Delay in Step of 25 ns[15:8]"
+	    "description":"Controls the delay from external trigger to DAQ sending trigger to ALPIDE. Value n gives a delay of n clock cycles (minimum 0 and maximum 65535 cycles i.e. from 0 to ~1638 us assuming a clock period of 25 ns), 0x43c0001c"
 	},
 	{
 	    "name":"TRIG_DELAY_L",
-	    "address":"0x10000008",
+	    "address":"0x43c0001c",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -994,64 +993,31 @@
 	    "description":"Trigger Delay in Step of 25 ns[7:0]"
 	},
 	{
-	    "name":"RESERVED",
-	    "address":[
-		    "RESERVED_H",
-		    "RESERVED_L"
-	    ],
-	    "bytes":2,
-	    "words":2,
-	    "endian":"BE",
-	    "read":true,
-	    "write":true,
-	    "description":"it was/is SetFramePhase"
-	},
-	{
-	    "name":"RESERVED_9",
-	    "address":"0x10000009",
+	    "name":"TRIG_DELAY_H",
+	    "address":"0x43c0001d",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":true,
 	    "reset":"0x00",
-	    "description":"Reserved"
-	},
-	{
-	    "name":"RESERVED_A",
-	    "address":"0x1000000a",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x00",
-	    "description":"Reserved"
+	    "description":"Trigger Delay in Step of 25 ns[15:8]"
 	},
 	{
 	    "name":"GAP_INT_TRIG",
 	    "address":[
-		    "GAP_INT_TRIG_H",
-		    "GAP_INT_TRIG_L"
+		    "GAP_INT_TRIG_L",
+		    "GAP_INT_TRIG_H"
 	    ],
 	    "bytes":2,
 	    "words":2,
-	    "endian":"BE",
+	    "endian":"LE",
 	    "read":true,
 	    "write":true,
-	    "description":"Controls the frequency of the internal trigger in step of 5μs. The cycle time has a minimum value of 1. A 0 would be reset to 1 if wrote to this register."
-	},
-	{
-	    "name":"GAP_INT_TRIG_H",
-	    "address":"0x1000000b",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x00",
-	    "description":"Gap of Internal Trigger in Step of 5μs[15:8]"
+	    "description":"Controls the frequency of the internal trigger in step of 5μs. The cycle time has a minimum value of 1. A 0 would be reset to 1 if wrote to this register. 0x43c0002c"
 	},
 	{
 	    "name":"GAP_INT_TRIG_L",
-	    "address":"0x1000000c",
+	    "address":"0x43c0002c",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -1060,41 +1026,41 @@
 	    "description":"Gap of Internal Trigger in Step of 5μs[7:0]"
 	},
 	{
+	    "name":"GAP_INT_TRIG_H",
+	    "address":"0x43c0002d",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"Gap of Internal Trigger in Step of 5μs[15:8]"
+	},
+	{
 	    "name":"COUNT_READ",
-	    "address":"0x1000000d",
+	    "address":"0x43c00034",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":false,
 	    "reset":"0x00",
-	    "description":"counter of succeed ALPIDE register reading process"
+	    "description":"counter of succeed ALPIDE register reading process 0x43c00034"
 	},
 	{
 	    "name":"DATA_READ",
 	    "address":[
-		    "DATA_READ_H",
-		    "DATA_READ_L"
+		    "DATA_READ_L",
+		    "DATA_READ_H"
 	    ],
 	    "bytes":2,
 	    "words":2,
-	    "endian":"BE",
+	    "endian":"LE",
 	    "read":true,
 	    "write":false,
-	    "description":"Data Read from ALPIDE Register"
-	},
-	{
-	    "name":"DATA_READ_H",
-	    "address":"0x1000000e",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":false,
-	    "reset":"0x00",
-	    "description":"Data Read from ALPIDE Register[15:8] "
+	    "description":"Data Read from ALPIDE Register  0x43c00038"
 	},
 	{
 	    "name":"DATA_READ_L",
-	    "address":"0x1000000f",
+	    "address":"0x43c00038",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
@@ -1103,79 +1069,25 @@
 	    "description":"Data Read from ALPIDE Register[7:0] "
 	},
 	{
+	    "name":"DATA_READ_H",
+	    "address":"0x43c00039",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":false,
+	    "reset":"0x00",
+	    "description":"Data Read from ALPIDE Register[15:8] "
+	},
+	{
 	    "name":"FIRMWARE_MODE",
-	    "address":"0x10000010",
+	    "address":"0x43c00040",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":true,
 	    "reset":"0x00",
 	    "description":"FPGA Working Mode. Bit[7:2] Not used. Bit[1] =1, Internal trigger mode; =0, External trigger mode. Bit[0] =1, ALPIDE samples frame data continuously; =0, ALPIDE IDLE. "
-	},
-	{
-	    "name":"IP",
-	    "address":[
-		"IP0",
-		"IP1",
-		"IP2",
-		"IP3"
-	    ],
-	    "bytes":4,
-	    "words":4,
-	    "endian":"BE",
-	    "read":true,
-	    "write":true,
-	    "description":"fixed ip address "
-	},
-	{
-	    "name":"IP0",
-	    "address":"0xFFFFFC18",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0xC0",
-	    "description":"fixed ip address 0 "
-	},
-	{
-	    "name":"IP1",
-	    "address":"0xFFFFFC19",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0xA0",
-	    "description":"fixed ip address 1 "
-	},
-	{
-	    "name":"IP2",
-	    "address":"0xFFFFFC1A",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x00",
-	    "description":"fixed ip address 2 "
-	},
-	{
-	    "name":"IP3",
-	    "address":"0xFFFFFC1B",
-	    "bytes":1,
-	    "words":1,
-	    "read":true,
-	    "write":true,
-	    "reset":"0x10",
-	    "description":"fixed ip address 3 (lowest byte). NOTE: the IP3_runtime = IP3 + SW_onboard"
-	},
-        {
-	    "name":"IP_READ_ONLY",
-	    "address":"0xFFFFFCFF",
-	    "bytes":1,
-	    "words":1,
-	    "read":false,
-	    "write":true,
-	    "reset":"0xff",
-	    "description":"readonly flag to protect IP address. Disable it before setting new IP address"
 	}
     ]
+    
 }

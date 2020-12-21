@@ -1,7 +1,11 @@
+#include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "FirmwarePortal.hh"
-#include "rbcp.h"
-
 
 static const std::string altel_reg_cmd_list_content =
 #include "altel_reg_cmd_list.hh"
@@ -68,31 +72,83 @@ const std::string& FirmwarePortal::DeviceUrl(){
   return m_alpide_ip_addr;
 }
 
-
 void  FirmwarePortal::WriteByte(uint64_t address, uint64_t value){
-  DebugFormatPrint(std::cout, "WriteByte( address=%#016x ,  value=%#016x )\n", address, value);
-  // rbcp_write("131.169.133.173", 4660, static_cast<uint32_t>(address), static_cast<uint8_t>(value));
-  rbcp r(m_alpide_ip_addr);
-  std::string recvStr(100, 0);
-  r.DispatchCommand("wrb",  address, value, &recvStr);
-};
+  DebugFormatPrint(std::cout, "INFO<%s>: %se( address=%#016llx ,  value=%#016llx )\n", __func__, __func__, address, value);
+    
+  int fd;
+  if ((fd = open("/dev/mem", O_RDWR|O_SYNC)) < 0 ) {
+    printf("Error opening file. \n");
+    exit(-1);
+  }
+  
+  off_t phy_addr = address;
+  size_t len = 1;
+  size_t page_size = getpagesize();  
+  off_t offset_in_page = phy_addr & (page_size - 1);
 
+  size_t mapped_size = page_size * ( (offset_in_page + len)/page_size + 1);
+  
+  void *map_base = mmap(NULL,
+			mapped_size,
+			PROT_READ | PROT_WRITE,
+			MAP_SHARED,
+			fd,
+			phy_addr & ~(off_t)(page_size - 1));
+
+  if (map_base == MAP_FAILED){
+    perror("Memory mapped failed\n");
+    exit(-1);
+  }
+
+  char* virt_addr = (char*)map_base + offset_in_page;
+  *virt_addr = (char)value;  
+
+  close(fd);
+
+};
 
 uint64_t FirmwarePortal::ReadByte(uint64_t address){
   DebugFormatPrint(std::cout, "ReadByte( address=%#016x)\n", address);
-  uint8_t reg_value;
-  // rbcp_read("131.169.133.173", 4660, static_cast<uint32_t>(address), reg_value);
-  rbcp r(m_alpide_ip_addr);
-  std::string recvStr(100, 0);
-  r.DispatchCommand("rd", address, 1, &recvStr); 
-  reg_value=recvStr[0];
+
+  int fd;
+  if ((fd = open("/dev/mem", O_RDWR|O_SYNC)) < 0 ) {
+    printf("Error opening file. \n");
+    exit(-1);
+  }
+  
+  off_t phy_addr = address;
+  size_t len = 1;
+  size_t page_size = getpagesize();  
+  off_t offset_in_page = phy_addr & (page_size - 1);
+
+  size_t mapped_size = page_size * ( (offset_in_page + len)/page_size + 1);
+  
+  void *map_base = mmap(NULL,
+			mapped_size,
+			PROT_READ | PROT_WRITE,
+			MAP_SHARED,
+			fd,
+			phy_addr & ~(off_t)(page_size - 1));
+
+  if (map_base == MAP_FAILED){
+    perror("Memory mapped failed\n");
+    exit(-1);
+  }
+
+  char* virt_addr = (char*)map_base + offset_in_page;
+  uint8_t reg_value = *virt_addr;  
+
+  close(fd);
+  
   DebugFormatPrint(std::cout, "ReadByte( address=%#016x) return value=%#016x\n", address, reg_value);
   return reg_value;
 };
 
+
+
 void FirmwarePortal::SetFirmwareRegister(const std::string& name, uint64_t value){
-  DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ,  value=%#016x )\n", __func__, __func__, name.c_str(), value);
-  static const std::string array_name("FIRMWARE_REG_LIST_V2");
+  DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ,  value=%#016llx )\n", __func__, __func__, name.c_str(), value);
+  static const std::string array_name("FIRMWARE_REG_LIST_V3");
   auto& json_array = m_json[array_name];
   if(json_array.Empty()){
     FormatPrint(std::cerr, "ERROR<%s>:   unable to find array<%s>\n", __func__, array_name.c_str());
@@ -152,16 +208,16 @@ void FirmwarePortal::SetFirmwareRegister(const std::string& name, uint64_t value
 	std::string name_in_array_str = name_in_array.GetString();
 	uint64_t sub_value;
 	if(flag_is_little_endian){
-	  uint64_t f = 8*sizeof(value)-n_bits_per_word*(i+1);
-	  uint64_t b = 8*sizeof(value)-n_bits_per_word;
+	  size_t f = 8*sizeof(value)-n_bits_per_word*(i+1);
+	  size_t b = 8*sizeof(value)-n_bits_per_word;
 	  sub_value = (value<<f)>>b;
-	  DebugFormatPrint(std::cout, "INFO<%s>: %s value=%#016x (<<%u)  (>>%u) sub_value=%#016x \n", __func__, "LE", value, f, b, sub_value);
+	  // DebugFormatPrint(std::cout, "INFO<%s>: %s value=%#016x (<<%z)  (>>%z) sub_value=%#016llx \n", __func__, "LE", value, f, b, sub_value);
 	}
 	else{
-	  uint64_t f = 8*sizeof(value)-n_bits_per_word*(n_words-i);
-	  uint64_t b = 8*sizeof(value)-n_bits_per_word;
+	  size_t f = 8*sizeof(value)-n_bits_per_word*(n_words-i);
+	  size_t b = 8*sizeof(value)-n_bits_per_word;
 	  sub_value = (value<<f)>>b;
-	  DebugFormatPrint(std::cout, "INFO<%s>: %s value=%#016x (<<%u)  (>>%u) sub_value=%#016x \n", __func__, "BE", value, f, b, sub_value);
+	  // DebugFormatPrint(std::cout, "INFO<%s>: %s value=%#016x (<<%z)  (>>%z) sub_value=%#016llx \n", __func__, "BE", value, f, b, sub_value);
 	}
 	SetFirmwareRegister(name_in_array_str, sub_value);
 	i++;
@@ -181,7 +237,7 @@ void FirmwarePortal::SetFirmwareRegister(const std::string& name, uint64_t value
 }
 
 void FirmwarePortal::SetAlpideRegister(const std::string& name, uint64_t value){
-  DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ,  value=%#016x )\n", __func__, __func__, name.c_str(), value);
+  DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ,  value=%#016llx )\n", __func__, __func__, name.c_str(), value);
   static const std::string array_name("CHIP_REG_LIST");
   auto& json_array = m_json[array_name];
   if(json_array.Empty()){
@@ -275,7 +331,7 @@ void FirmwarePortal::SetAlpideRegister(const std::string& name, uint64_t value){
 
 void FirmwarePortal::SendFirmwareCommand(const std::string& name){
   DebugFormatPrint(std::cout, "INFO<%s>:  %s( name=%s )\n", __func__, __func__, name.c_str());
-  static const std::string array_name("FIRMWARE_CMD_LIST_V2");
+  static const std::string array_name("FIRMWARE_CMD_LIST_V3");
   auto& json_array = m_json[array_name];
   if(json_array.Empty()){
     FormatPrint(std::cerr, "ERROR<%s>:   unable to find array<%s>\n", __func__, array_name.c_str());
@@ -359,7 +415,7 @@ void FirmwarePortal::SendAlpideBroadcast(const std::string& name){
 
 uint64_t FirmwarePortal::GetFirmwareRegister(const std::string& name){
   DebugFormatPrint(std::cout, "INFO<%s>:  %s( name=%s )\n", __func__, __func__, name.c_str());
-  static const std::string array_name("FIRMWARE_REG_LIST_V2");
+  static const std::string array_name("FIRMWARE_REG_LIST_V3");
   auto& json_array = m_json[array_name];
   if(json_array.Empty()){
     FormatPrint(std::cerr, "ERROR<%s>:   unable to find array<%s>\n", __func__, array_name.c_str());
