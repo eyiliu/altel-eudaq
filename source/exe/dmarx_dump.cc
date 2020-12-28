@@ -31,7 +31,7 @@ Usage:
   -verbose                     verbose flag
   -rawPrint                    print data by hex format in terminal
   -rawFile        <path>       path of raw file to save
-
+  -exitTime       <n>          exit after n seconds (0=NoLimit, default 10)
 examples:
 #1. save data and print
 ./dmarx_dump -rawPrint -rawFile test.dat
@@ -41,6 +41,10 @@ examples:
 
 #3. print only
 ./dmarx_dump -rawPrint
+
+#4. print, exit after 60 seconds
+./dmarx_dump -rawPrint -exitTime 60
+
 )";
 
 static sig_atomic_t g_done = 0;
@@ -49,6 +53,7 @@ int main(int argc, char *argv[]) {
 
   std::string rawFilePath;
   std::string ipAddressStr;
+  int exitTimeSecond = 10;
   bool do_rawPrint = false;
 
   int do_verbose = 0;
@@ -57,6 +62,7 @@ int main(int argc, char *argv[]) {
                                 {"verbose",   no_argument, NULL, 'v'},//val
                                 {"rawPrint",  no_argument, NULL, 's'},
                                 {"rawFile",   required_argument, NULL, 'f'},
+                                {"exitTime",  required_argument, NULL, 'e'},
                                 {0, 0, 0, 0}};
 
     if(argc == 1){
@@ -74,6 +80,9 @@ int main(int argc, char *argv[]) {
       switch (c) {
       case 'f':
         rawFilePath = optarg;
+        break;
+      case 'e':
+        exitTimeSecond = std::stoi(optarg);
         break;
       case 's':
         do_rawPrint = true;
@@ -189,7 +198,7 @@ int main(int argc, char *argv[]) {
   }
 
   auto js_rd_conf = JsonUtils::createJsonDocument(rd_conf_str);
-  std::unique_ptr<AltelReader> rd(new AltelReader(JsonUtils::stringJsonValue(js_rd_conf)));
+  std::unique_ptr<AltelReader> rd(new AltelReader(js_rd_conf));
   std::fprintf(stdout, " connecting to %s\n", rd->DeviceUrl().c_str());
   if(!rd->Open()){
       std::fprintf(stdout, " connection fail\n");
@@ -197,18 +206,25 @@ int main(int argc, char *argv[]) {
   }
   std::fprintf(stdout, " connected\n");
 
-
   size_t dataFrameN = 0;
+
+  std::chrono::system_clock::time_point tp_timeout_exit  = std::chrono::system_clock::now() + std::chrono::seconds(exitTimeSecond);
+
   while(!g_done){
-    auto df = rd->Read(std::chrono::seconds(1));
+    if(std::chrono::system_clock::now() > tp_timeout_exit){
+      std::fprintf(stdout, "run %d seconds, nornal exit\n", exitTimeSecond);
+      break;
+    }
+    auto df = rd->ReadRaw(100, std::chrono::seconds(1));
     if(!df){
-      std::fprintf(stdout, "Data reveving timeout\n");
-      std::fprintf(stdout, "!!!!!you might need to start alpide with rbcp tool (rbcp_main) \n");
-      std::fprintf(stdout, "!!!!!you might need to trigger alpide \n");
+      // std::fprintf(stdout, "Data reveving timeout\n");
+      // std::fprintf(stdout, "!!!!!you might need to start alpide with rbcp tool (rbcp_main) \n");
+      // std::fprintf(stdout, "!!!!!you might need to trigger alpide \n");
       continue;
     }
     if(do_rawPrint){
-      std::fprintf(stdout, "\nDataFrame #%d,  TLU #%d\n", dataFrameN, df->GetCounter());
+      // std::fprintf(stdout, "\nDataFrame #%d,  TLU #%d\n", dataFrameN, df->GetCounter());
+      std::fprintf(stdout, "\n100 bytes block #%d\n", dataFrameN);
       std::fprintf(stdout, "RawData_TCP_RX:\n%s\n", StringToHexString(df->m_raw).c_str());
     }
 

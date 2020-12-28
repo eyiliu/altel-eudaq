@@ -13,7 +13,11 @@ public:
   ~AltelReader();
   AltelReader(const rapidjson::GenericValue<rapidjson::UTF8<>, rapidjson::CrtAllocator> &js);
   AltelReader(const std::string &json_string);
+
   DataFrameSP Read(const std::chrono::milliseconds &timeout);
+
+  DataFrameSP ReadRaw(size_t len, const std::chrono::milliseconds &timeout_idel);
+
   std::vector<DataFrameSP> Read(size_t size_max_pkg,
                                 const std::chrono::milliseconds &timeout_idel,
                                 const std::chrono::milliseconds &timeout_total);
