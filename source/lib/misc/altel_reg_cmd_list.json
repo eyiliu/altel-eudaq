@@ -861,15 +861,7 @@
 	    "bytes":1,
 	    "words":1,
 	    "description":"Read data from ALPIDE register at ALPIDE Register Address and store in Data Read"
-	},
-	{
-	    "name":"STOP_AXIS",
-	    "value":"0xaa",
-	    "bytes":1,
-	    "words":1,
-	    "description":"Stop writing data to AXIS FIFO"
 	}
-
     ],
 
     "FIRMWARE_REG_LIST_V3":[
@@ -882,6 +874,16 @@
 	    "write":true,
 	    "reset":"0x00",
 	    "description":"Command Register"
+	},
+	{
+	    "name":"FIRMWARE_RESET",
+	    "address":"0x43c00000",
+	    "bytes":1,
+	    "words":1,
+	    "read":false,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"0xFF reset"
 	},
 	{
 	    "name":"ADDR_CHIP_ID",
@@ -927,6 +929,16 @@
 	    "description":"ALPIDE Register Address to Read or Write, [15:8]"
 	},
 	{
+	    "name":"DEVICE_ID",
+	    "address":"0x43c0000c",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"Device ID, layer ID"
+	},
+	{
 	    "name":"DATA_WRITE",
 	    "address":[
 		    "DATA_WRITE_L",
@@ -958,6 +970,16 @@
 	    "write":true,
 	    "reset":"0x00",
 	    "description":"Data Wrote to ALPIDE Register [15:8] "
+	},
+	{
+	    "name":"FIRMWARE_STOP",
+	    "address":"0x43c00014",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"0xff to stop, 0x00 run"
 	},
 	{
 	    "name":"BROADCAST_OPCODE",

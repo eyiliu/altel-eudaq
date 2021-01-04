@@ -152,8 +152,11 @@ DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //
     // std::cout<<" size_buf size_buf_min  size_filled<< size_buf << " "<< size_buf_min<<" " << size_filled<<std::endl;
     if(size_buf == size_buf_min  && size_filled >= size_buf_min){
       uint8_t header_byte =  buf.front();
-      uint32_t w1 = BE32TOH(*reinterpret_cast<const uint32_t*>(buf.data()+1));
-      uint8_t rsv = (w1>>20) & 0xf;
+
+      // uint32_t w1 = BE32TOH(*reinterpret_cast<const uint32_t*>(buf.data()+1));
+      // uint8_t rsv = (w1>>20) & 0xf;
+
+      
       uint32_t size_payload = (w1 & 0xfffff);
       // std::cout<<" size_payload "<< size_payload<<std::endl;
       if(header_byte != HEADER_BYTE){
@@ -182,16 +185,15 @@ DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //
 
 
 DataFrameSP AltelReader::ReadRaw(size_t len, const std::chrono::milliseconds &timeout_idel){ //timeout_read_interval
+
   size_t size_buf_min = 0;
-  size_t size_buf = len;
+  size_t size_buf = (len+3)/4*4;
   std::string buf(size_buf, 0);
   size_t size_filled = 0;
   std::chrono::system_clock::time_point tp_timeout_idel;
   bool can_time_out = false;
-  int read_len_real = 0;
   while(size_filled < size_buf){
-    read_len_real = read(m_fd, &buf[size_filled], size_buf-size_filled);
-       
+    int read_len_real = read(m_fd, &buf[size_filled], size_buf-size_filled);
     if(read_len_real== 0 || ((read_len_real < 0) && (errno == EAGAIN))){//no data
       if(!can_time_out){
 	can_time_out = true;
@@ -211,7 +213,6 @@ DataFrameSP AltelReader::ReadRaw(size_t len, const std::chrono::milliseconds &ti
 	}
 	continue;
       }
-      
     }
     else if(read_len_real < 0 && errno != EAGAIN) {
       fprintf(stderr, "ERROR on reading from axidmard, errno=%d\n", errno);
@@ -221,12 +222,24 @@ DataFrameSP AltelReader::ReadRaw(size_t len, const std::chrono::milliseconds &ti
     else{//read_len_real>0 , has data
       // std::fprintf(stdout, "read  %d Bytes \n", read_len_real);
       // std::fprintf(stdout, "Hex:   \n%s\n", StringToHexString(buf).c_str());
+      if(read_len_real%4){
+	std::fprintf(stderr, "read incomplete word, %d bytes \n", read_len_real);
+	throw;
+      }
       size_filled += read_len_real;
       can_time_out = false;
     }
     //back to loop
   }
   // std::fprintf(stdout, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
+
+  uint32_t *p32_buf = reinterpret_cast<uint32_t*>(&buf[0]);
+  for(size_t n = 0; n<size_filled/4;){
+    *p32_buf = BE32TOH(*p32_buf);
+    n++;
+    p32_buf ++;
+  }
+
   auto df = std::make_shared<DataFrame>();
   df->m_raw=std::move(buf);
   return df;

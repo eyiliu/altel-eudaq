@@ -208,30 +208,27 @@ int main(int argc, char **argv){
       //user init
       //
       //
-
+      m_fw->SetFirmwareRegister("DEVICE_ID", 0xff);
       //
       //end of user init
       std::fprintf(stdout, " fw init  %s\n", m_fw->DeviceUrl().c_str());
     }
     else if ( std::regex_match(result, std::regex("\\s*(starti)\\s*")) ){
-      printf("starting interal trigger, mode 2\n");
-      m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
-      m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
-      m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
-      m_fw->SetFirmwareRegister("FIRMWARE_MODE", 2); //run ext trigger
-      std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
+      printf("commmand starti is removed, do not use it\n");
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
       printf("starting ext trigger, mode 1\n");
       m_fw->SetAlpideRegister("CMU_DMU_CONF", 0x70);// token
       m_fw->SetAlpideRegister("CHIP_MODE", 0x3d); //trigger MODE
       m_fw->SendAlpideBroadcast("RORST"); //Readout (RRU/TRU/DMU) reset, commit token
+      // m_fw->SetFirmwareRegister("FIRMWARE_STOP", 0x00);//remove stop flag
       m_fw->SetFirmwareRegister("FIRMWARE_MODE", 1); //run inter trigger
       std::fprintf(stdout, " fw start %s\n", m_fw->DeviceUrl().c_str());
     }
     else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
       printf("stopping\n");
       m_fw->SetFirmwareRegister("FIRMWARE_MODE", 0); //fw must be stopped before chip
+      // m_fw->SetFirmwareRegister("FIRMWARE_STOP", 0xff); // set stop flag
       m_fw->SetAlpideRegister("CHIP_MODE", 0x3c); // configure mode
       std::fprintf(stdout, " fw stop  %s\n", m_fw->DeviceUrl().c_str());
     }
