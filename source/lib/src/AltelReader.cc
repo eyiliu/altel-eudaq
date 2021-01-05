@@ -103,7 +103,7 @@ std::vector<DataFrameSP> AltelReader::Read(size_t size_max_pkg,
 }
 
 DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //timeout_read_interval
-  size_t size_buf_min = 8;
+  size_t size_buf_min = 12;
   size_t size_buf = size_buf_min;
   std::string buf(size_buf, 0);
   size_t size_filled = 0;
@@ -153,35 +153,40 @@ DataFrameSP AltelReader::Read(const std::chrono::milliseconds &timeout_idel){ //
     if(size_buf == size_buf_min  && size_filled >= size_buf_min){
       uint8_t header_byte =  buf.front();
 
-      // uint32_t w1 = BE32TOH(*reinterpret_cast<const uint32_t*>(buf.data()+1));
+      uint32_t w1 = *reinterpret_cast<const uint32_t*>(buf.data()+4);
       // uint8_t rsv = (w1>>20) & 0xf;
 
-      
       uint32_t size_payload = (w1 & 0xfffff);
       // std::cout<<" size_payload "<< size_payload<<std::endl;
       if(header_byte != HEADER_BYTE){
         std::fprintf(stderr, "ERROR<%s@%s>: wrong header of data frame\n", __func__, m_tcp_ip.c_str());
 
-	
         //TODO: skip brocken data
         throw;
       }
-      size_buf = size_buf_min + size_payload;
+
+      size_buf += (size_payload + 4) & -4 ;
+      
       buf.resize(size_buf);
     }
   }
-  uint8_t footer_byte =  buf.back();
-  if(footer_byte != FOOTER_BYTE){
+
+  uint32_t w_end = *reinterpret_cast<const uint32_t*>(&buf.back()-3);
+
+  // uint8_t footer_byte =  buf.back();
+  if(w_end != FOOTER_BYTE && (w_end>>8)!= FOOTER_BYTE && (w_end>>16)!= FOOTER_BYTE && (w_end>>24)!= FOOTER_BYTE ){
     std::fprintf(stderr, "ERROR<%s@%s>:  wrong footer of data frame\n", __func__,  m_tcp_ip.c_str());
     std::fprintf(stderr, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
     //TODO: skip broken data. do not know what happenned to broken data
     throw;
   }
   // std::fprintf(stdout, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
-  return std::make_shared<DataFrame>(std::move(buf));
+
+  auto df = std::make_shared<DataFrame>();
+  df->m_raw=std::move(buf);
+  return df;
+  // return std::make_shared<DataFrame>(std::move(buf));
 }
-
-
 
 
 DataFrameSP AltelReader::ReadRaw(size_t len, const std::chrono::milliseconds &timeout_idel){ //timeout_read_interval
@@ -233,12 +238,12 @@ DataFrameSP AltelReader::ReadRaw(size_t len, const std::chrono::milliseconds &ti
   }
   // std::fprintf(stdout, "dumpping data Hex:\n%s\n", StringToHexString(buf).c_str());
 
-  uint32_t *p32_buf = reinterpret_cast<uint32_t*>(&buf[0]);
-  for(size_t n = 0; n<size_filled/4;){
-    *p32_buf = BE32TOH(*p32_buf);
-    n++;
-    p32_buf ++;
-  }
+  // uint32_t *p32_buf = reinterpret_cast<uint32_t*>(&buf[0]);
+  // for(size_t n = 0; n<size_filled/4;){
+  //   *p32_buf = BE32TOH(*p32_buf);
+  //   n++;
+  //   p32_buf ++;
+  // }
 
   auto df = std::make_shared<DataFrame>();
   df->m_raw=std::move(buf);

@@ -116,7 +116,7 @@ int main(int argc, char **argv){
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "info", "starti", "start", "stop", "init", "reset", "regcmd",
+                                     {"help", "info", "selftrigger", "start", "stop", "init", "reset", "regcmd",
                                       "quit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
@@ -146,13 +146,14 @@ int main(int argc, char **argv){
     else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){
       printf("reset \n");
       m_fw->SendFirmwareCommand("RESET");
+      m_fw->SetFirmwareRegister("FIRMWARE_RESET", 0xff);
     }
     else if ( std::regex_match(result, std::regex("\\s*(init)\\s*")) ){
       printf("init \n");
       // begin init
       //  m_fw->SendFirmwareCommand("RESET");
       m_fw->SetFirmwareRegister("TRIG_DELAY", 1); //25ns per dig (FrameDuration?)
-      m_fw->SetFirmwareRegister("GAP_INT_TRIG", 20);
+      // m_fw->SetFirmwareRegister("GAP_INT_TRIG", 20);
 
       //=========== init part ========================
       // 3.8 Chip initialization
@@ -213,8 +214,21 @@ int main(int argc, char **argv){
       //end of user init
       std::fprintf(stdout, " fw init  %s\n", m_fw->DeviceUrl().c_str());
     }
-    else if ( std::regex_match(result, std::regex("\\s*(starti)\\s*")) ){
-      printf("commmand starti is removed, do not use it\n");
+    else if ( std::regex_match(result, std::regex("\\s*(selftrigger)\\s+(set)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(selftrigger)\\s+(set)\\s+(?:(0[Xx])?([0-9]+))\\s*"));
+      uint64_t freq = std::stoull(mt[4].str(), 0, mt[3].str().empty()?10:16);
+      uint64_t cir_per_trigger = 40000000/freq;
+      std::fprintf(stdout, "set GAP_INT_TRIG = %#llx  %llu\n", cir_per_trigger, cir_per_trigger); 
+      fw.SetFirmwareRegister("GAP_INT_TRIG", cir_per_trigger);
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(selftrigger)\\s+(get)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(selftrigger)\\s+(get)\\s*"));
+      uint64_t cir_per_trigger  = fw.GetFirmwareRegister("GAP_INT_TRIG");
+      uint64_t freq = 40000000/cir_per_trigger;
+      fprintf(stderr, "cir_per_trigger = %#llx   %llu \n", cir_per_trigger, cir_per_trigger);
+      fprintf(stderr, "freq = %#llx   %llu \n", freq, freq);
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
       printf("starting ext trigger, mode 1\n");

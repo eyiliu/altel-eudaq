@@ -1027,35 +1027,57 @@
 	{
 	    "name":"GAP_INT_TRIG",
 	    "address":[
-		    "GAP_INT_TRIG_L",
-		    "GAP_INT_TRIG_H"
+		    "GAP_INT_TRIG_L0",
+		    "GAP_INT_TRIG_L1",
+		    "GAP_INT_TRIG_L2",
+		    "GAP_INT_TRIG_L3"
 	    ],
-	    "bytes":2,
-	    "words":2,
+	    "bytes":4,
+	    "words":4,
 	    "endian":"LE",
 	    "read":true,
 	    "write":true,
 	    "description":"Controls the frequency of the internal trigger in step of 5μs. The cycle time has a minimum value of 1. A 0 would be reset to 1 if wrote to this register. 0x43c0002c"
 	},
 	{
-	    "name":"GAP_INT_TRIG_L",
+	    "name":"GAP_INT_TRIG_L0",
 	    "address":"0x43c0002c",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":true,
 	    "reset":"0x14",
-	    "description":"Gap of Internal Trigger in Step of 5μs[7:0]"
+	    "description":"period Internal Trigger in 25ns setep"
 	},
 	{
-	    "name":"GAP_INT_TRIG_H",
+	    "name":"GAP_INT_TRIG_L1",
 	    "address":"0x43c0002d",
 	    "bytes":1,
 	    "words":1,
 	    "read":true,
 	    "write":true,
 	    "reset":"0x00",
-	    "description":"Gap of Internal Trigger in Step of 5μs[15:8]"
+	    "description":"period Internal Trigger in 25ns setep"
+	},
+	{
+	    "name":"GAP_INT_TRIG_L2",
+	    "address":"0x43c0002e",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"period Internal Trigger in 25ns setep"
+	},
+	{
+	    "name":"GAP_INT_TRIG_L3",
+	    "address":"0x43c0002f",
+	    "bytes":1,
+	    "words":1,
+	    "read":true,
+	    "write":true,
+	    "reset":"0x00",
+	    "description":"period Internal Trigger in 25ns setep"
 	},
 	{
 	    "name":"COUNT_READ",

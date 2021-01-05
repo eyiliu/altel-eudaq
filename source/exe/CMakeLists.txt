@@ -44,8 +44,7 @@ target_include_directories(dmarx_dump
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
   )
-target_link_libraries(dmarx_dump PRIVATE altel-rbcp mycommon stdc++fs)
-
+target_link_libraries(dmarx_dump PRIVATE mycommon stdc++fs)
 
 
 install(TARGETS regctrl_main dmarx_dump
